@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "id": "default",
+      "name": null,
+      "collapsed": false,
+      "shortcuts": [
+        {
+          "id": "dfbb9a76-d23e-4b8c-89bf-ffd004a76b2a",
+          "url": "https://mail.google.com/",
+          "label": "Gmail",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "c5dac2d0-d74d-4511-8fe6-c057bd79ab9e",
+          "url": "https://calendar.google.com/",
+          "label": "Calendar",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "55f3384f-d425-4c91-8dfd-fe96a9d283da",
+          "url": "https://www.youtube.com/",
+          "label": "YouTube",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "167e4135-34d3-4bfc-b2d3-103fb4cd9775",
+          "url": "https://claude.ai/",
+          "label": "Claude",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "c625e21b-6769-49eb-afd3-a173f42940c8",
+          "url": "https://en.wikipedia.org/",
+          "label": "Wikipedia",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "de491842-486f-43f0-840a-4fec381e2a55",
+          "url": "https://translate.google.com/",
+          "label": "Translate",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "359e3a1a-c00d-4244-ac4d-6a6312652f6c",
+          "url": "https://www.notion.com/",
+          "label": "Notion",
+          "icon": {
+            "kind": "auto"
+          }
+        }
+      ]
+    },
+    {
+      "id": "4f3fa83e-c700-4a48-bef0-6407996b9a55",
+      "name": "work",
+      "collapsed": false,
+      "shortcuts": [
+        {
+          "id": "ef760c59-4008-4c1f-80d8-ca9fe7c73113",
+          "url": "https://github.com/",
+          "label": "GitHub",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "120bb379-8e12-4e4a-9ac9-3d35fbdb3f79",
+          "url": "https://stackoverflow.com/",
+          "label": "Stack Overflow",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "4f6fb69a-cc99-4bd2-a78d-df2a5f33ff37",
+          "url": "https://developer.mozilla.org/",
+          "label": "MDN",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "5c168c4a-bf8f-45fb-a429-5877c5ab5908",
+          "url": "https://www.figma.com/",
+          "label": "Figma",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "4f355fdc-9fe7-454b-bff3-403f12241e4f",
+          "url": "https://linear.app/",
+          "label": "Linear",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "c421a326-1bc3-4cb7-b8d3-34a9667d9531",
+          "url": "https://vercel.com/dashboard",
+          "label": "Deploys",
+          "icon": {
+            "kind": "upload",
+            "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiM5ZWM3Y2YiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwZDBkMGQiPuKWsjwvdGV4dD48L3N2Zz4="
+          }
+        }
+      ]
+    },
+    {
+      "id": "f565873c-df43-4133-8dd7-6dd795054081",
+      "name": "news & reading",
+      "collapsed": false,
+      "shortcuts": [
+        {
+          "id": "fa65aa67-c499-4cbe-94fc-2fcd188ab9a7",
+          "url": "https://news.ycombinator.com/",
+          "label": "Hacker News",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "30cbfb6a-631b-4871-9046-557d409d4ee8",
+          "url": "https://www.theverge.com/",
+          "label": "The Verge",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "df744b20-c3a4-47f7-81f4-8527a2a33e36",
+          "url": "https://arstechnica.com/",
+          "label": "Ars Technica",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "35c784a3-f54e-4d5b-a5a3-2c3d087cd4c6",
+          "url": "https://longreads.com/",
+          "label": "Longreads",
+          "icon": {
+            "kind": "auto"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0f6d02f1-ca49-42df-8f78-fb49e0566004",
+      "name": "watch later",
+      "collapsed": true,
+      "shortcuts": [
+        {
+          "id": "dbb6e6c5-c8c6-4040-bc30-0468b9ca05b5",
+          "url": "https://www.youtube.com/playlist?list=WL",
+          "label": "Watch Later",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "56d0b7b4-0de2-4cca-8def-b60429602473",
+          "url": "https://www.twitch.tv/",
+          "label": "Twitch",
+          "icon": {
+            "kind": "auto"
+          }
+        },
+        {
+          "id": "10f253aa-88c6-4dbb-848b-7c97d4847808",
+          "url": "https://www.netflix.com/",
+          "label": "Netflix",
+          "icon": {
+            "kind": "auto"
+          }
+        }
+      ]
+    }
+  ]
+}
