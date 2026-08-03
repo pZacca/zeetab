@@ -14,7 +14,12 @@ export default defineConfig({
     ...(browser === "firefox"
       ? {
           browser_specific_settings: {
-            gecko: { id: "zeetab@zacca.dev" },
+            gecko: {
+              id: "zeetab@zacca.dev",
+              // Firefox built-in data consent: zeetab collects nothing.
+              // https://mzl.la/firefox-builtin-data-consent
+              data_collection_permissions: { required: ["none"] },
+            },
           },
         }
       : {}),
