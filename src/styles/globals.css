@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* The demo build's Vite root is demo/ (vite.demo.config.ts), so Tailwind's
+   automatic source detection never scans src/ — declare it explicitly. */
+@source "../";
 
 :root {
   --primary: #84ffb0;
