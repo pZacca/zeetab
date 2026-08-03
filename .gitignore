@@ -12,3 +12,8 @@ stats-*.json
 .vercel/
 coverage/
 .vercel
+
+# agent tooling (personal setup)
+.claude/
+.agents/
+skills-lock.json
