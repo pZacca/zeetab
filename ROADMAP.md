@@ -20,10 +20,6 @@ Working notes on where zeetab is headed. Not a promise — an ordering.
       user base grows enough to make account-hijack a real threat model;
       not worth the key-management burden today.
 
-## Conventions
-
-- `package.json` is the single source of truth for the version — WXT
-  propagates it into both manifests.
-- GitHub Packages is intentionally unused: zeetab is not a library.
-- Feature ideas live in [issues](https://github.com/pZacca/zeetab/issues),
-  not here — this file tracks process and infrastructure only.
+Project conventions live in [CONTRIBUTING.md](./CONTRIBUTING.md); feature
+ideas live in [issues](https://github.com/pZacca/zeetab/issues). This file
+tracks process and infrastructure work only.
