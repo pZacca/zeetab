@@ -11,3 +11,4 @@ stats-*.json
 *.log
 .vercel/
 coverage/
+.vercel
