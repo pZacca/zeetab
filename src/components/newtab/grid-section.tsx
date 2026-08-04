@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, GripVertical, MoreVertical } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import {
@@ -95,6 +95,39 @@ export function GridSection({
     data: { sectionId: section.id },
   });
 
+  // The name is click-to-toggle AND double-click-to-rename: a single click
+  // only toggles after the double-click window has passed, so renaming
+  // never collapses the Section on its first click.
+  const nameClickTimer = useRef<ReturnType<typeof globalThis.setTimeout> | null>(
+    null
+  );
+  useEffect(
+    () => () => {
+      if (nameClickTimer.current)
+        globalThis.clearTimeout(nameClickTimer.current);
+    },
+    []
+  );
+
+  function handleNameClick() {
+    if (nameClickTimer.current) return;
+    nameClickTimer.current = globalThis.setTimeout(() => {
+      // eslint-disable-next-line unicorn/no-null
+      nameClickTimer.current = null;
+      actions.toggleSectionCollapse(section.id);
+    }, 250);
+  }
+
+  function handleNameDoubleClick() {
+    if (nameClickTimer.current) {
+      globalThis.clearTimeout(nameClickTimer.current);
+      // eslint-disable-next-line unicorn/no-null
+      nameClickTimer.current = null;
+    }
+    setDraft(section.name ?? "");
+    setRenaming(true);
+  }
+
   function commitRename() {
     const trimmed = draft.trim();
     if (trimmed && trimmed !== section.name)
@@ -166,11 +199,9 @@ export function GridSection({
             />
           ) : (
             <h2
-              className="font-ibm-plex-mono text-sm text-zinc-200"
-              onDoubleClick={() => {
-                setDraft(section.name ?? "");
-                setRenaming(true);
-              }}
+              className="cursor-pointer font-ibm-plex-mono text-sm text-zinc-200 select-none hover:text-zinc-100"
+              onClick={handleNameClick}
+              onDoubleClick={handleNameDoubleClick}
             >
               {section.name}
             </h2>
