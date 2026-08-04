@@ -6,6 +6,19 @@ import {
   type DragSessionState,
 } from "./drag-session";
 
+function draggingOverHeader(sectionId: string): DragSessionState {
+  const dragging = reduceDragSession(initialDragSessionState, {
+    type: "dragStart",
+    shortcutId: "A",
+    sectionId: "default",
+    index: 0,
+  }).state;
+  return reduceDragSession(dragging, {
+    type: "dragOverSectionHeader",
+    sectionId,
+  }).state;
+}
+
 describe("reduceDragSession", () => {
   it("starts idle", () => {
     expect(initialDragSessionState).toEqual({ phase: "idle" });
@@ -116,19 +129,6 @@ describe("reduceDragSession", () => {
   });
 
   describe("spring-loading (collapsed Section headers)", () => {
-    function draggingOverHeader(sectionId: string): DragSessionState {
-      const dragging = reduceDragSession(initialDragSessionState, {
-        type: "dragStart",
-        shortcutId: "A",
-        sectionId: "default",
-        index: 0,
-      }).state;
-      return reduceDragSession(dragging, {
-        type: "dragOverSectionHeader",
-        sectionId,
-      }).state;
-    }
-
     it("dragOverSectionHeader tracks the hovered header without expanding or committing", () => {
       const { state, commit } = reduceDragSession(
         reduceDragSession(initialDragSessionState, {
