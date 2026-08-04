@@ -12,7 +12,6 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
@@ -22,6 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, X } from "lucide-react";
 import { useNewtab } from "./newtab-provider";
 import { parseImport } from "@/lib/newtab/import-export";
+import { resolveSectionReorder } from "@/lib/newtab/grid-drag";
 import type { Config } from "@/lib/newtab/types";
 import {
   Sheet,
@@ -64,15 +64,13 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
   );
 
   function onDragEnd(e: DragEndEvent) {
-    if (!e.over || e.active.id === e.over.id) return;
-    const ids = sortable.map((s) => s.id);
-    const from = ids.indexOf(String(e.active.id));
-    const to = ids.indexOf(String(e.over.id));
-    if (from === -1 || to === -1) return;
-    const reordered = arrayMove(ids, from, to);
-    startTransition(() =>
-      actions.reorderSections([DEFAULT_SECTION_ID, ...reordered])
+    if (!e.over) return;
+    const ordered = resolveSectionReorder(
+      state.config.sections.map((s) => s.id),
+      String(e.active.id),
+      String(e.over.id)
     );
+    if (ordered) startTransition(() => actions.reorderSections(ordered));
   }
 
   function onImportFile(file: File) {
