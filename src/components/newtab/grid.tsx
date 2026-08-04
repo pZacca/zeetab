@@ -334,7 +334,11 @@ export function Grid() {
         activeSectionId,
         overSectionId
       );
-      if (ordered) startTransition(() => actions.reorderSections(ordered));
+      // Committed synchronously — NOT in a transition — so the reorder lands
+      // in the same render batch as dnd-kit clearing the drag transform.
+      // Deferring it leaves a frame where the section flashes back to its
+      // old slot before the new order paints.
+      if (ordered) actions.reorderSections(ordered);
       return;
     }
     clearSpringTimer();

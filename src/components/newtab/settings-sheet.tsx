@@ -73,7 +73,9 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
       String(e.active.id),
       String(e.over.id)
     );
-    if (ordered) startTransition(() => actions.reorderSections(ordered));
+    // Synchronous on purpose: a deferred commit paints one frame with the
+    // row back in its old slot (see the grid's section dragEnd).
+    if (ordered) actions.reorderSections(ordered);
   }
 
   function onImportFile(file: File) {
