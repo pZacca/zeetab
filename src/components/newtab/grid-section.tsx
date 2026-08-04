@@ -138,32 +138,25 @@ export function GridSection({
           >
             <GripVertical className="size-4" />
           </button>
-          <button
-            type="button"
-            onClick={() => actions.toggleSectionCollapse(section.id)}
-            className="flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-100"
-            aria-expanded={!section.collapsed}
-            aria-label={section.collapsed ? "Expand section" : "Collapse section"}
-          >
-            <ChevronDown
-              className={`size-4 transition-transform ${
-                section.collapsed ? "-rotate-90" : ""
-              }`}
-            />
-          </button>
-
           {renaming ? (
-            <Input
-              autoFocus
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={commitRename}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") commitRename();
-                if (e.key === "Escape") cancelRename();
-              }}
-              className="h-7 max-w-[240px]"
-            />
+            <>
+              <ChevronDown
+                className={`size-4 text-zinc-400 transition-transform ${
+                  section.collapsed ? "-rotate-90" : ""
+                }`}
+              />
+              <Input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitRename();
+                  if (e.key === "Escape") cancelRename();
+                }}
+                className="h-7 max-w-[240px]"
+              />
+            </>
           ) : (
             <>
               <h2 className="font-ibm-plex-mono text-sm text-zinc-200">
@@ -171,8 +164,13 @@ export function GridSection({
                   type="button"
                   onClick={() => actions.toggleSectionCollapse(section.id)}
                   aria-expanded={!section.collapsed}
-                  className="cursor-pointer transition-colors hover:text-zinc-100"
+                  className="group flex cursor-pointer items-center gap-2 transition-colors hover:text-zinc-50"
                 >
+                  <ChevronDown
+                    className={`size-4 text-zinc-400 transition-all group-hover:text-zinc-50 ${
+                      section.collapsed ? "-rotate-90" : ""
+                    }`}
+                  />
                   {section.name}
                 </button>
               </h2>
