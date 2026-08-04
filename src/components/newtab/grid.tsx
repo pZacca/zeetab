@@ -25,6 +25,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type Modifier,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -77,11 +78,18 @@ type DialogState =
 // springs open (see drag-session.ts's spring-loading rules).
 const SPRING_DELAY_MS = 600;
 
-function isSectionDrag(active: {
-  data: { current?: { type?: unknown } | undefined };
-}): boolean {
-  return active.data.current?.type === "section";
+function isSectionDrag(
+  active: {
+    data: { current?: { type?: unknown } | undefined };
+  } | null
+): boolean {
+  return active?.data.current?.type === "section";
 }
+
+// Sections sort in a vertical list; the handle drag should track the
+// pointer in y only. Tile drags pass through untouched.
+const sectionVerticalAxis: Modifier = ({ active, transform }) =>
+  isSectionDrag(active) ? { ...transform, x: 0 } : transform;
 
 // Two drag types share this DndContext, and each must only ever collide
 // with its own droppables: a Section drag sees just the named Sections'
@@ -150,6 +158,13 @@ export function Grid() {
   // pointer-down-to-drop window so the ghost follows the pointer anywhere
   // on screen, above every stacking context.
   const [activeShortcut, setActiveShortcut] = useState<Shortcut | undefined>();
+  // True while a Section is being dragged by its handle. The DragOverlay
+  // must UNMOUNT for that window: dnd-kit mounts the overlay wrapper for any
+  // active drag (even with no children), and a mounted overlay makes every
+  // SortableContext hand the active item the strategy's slot-snapping
+  // transform instead of the pointer delta — the Section would jump between
+  // slots instead of following the pointer.
+  const [sectionDragActive, setSectionDragActive] = useState(false);
 
   // The post-drag click guard has to be a NATIVE window-capture listener:
   // dnd-kit suppresses the click with stopPropagation in a document-capture
@@ -229,7 +244,10 @@ export function Grid() {
   }
 
   function handleDragStart(event: DragStartEvent) {
-    if (isSectionDrag(event.active)) return;
+    if (isSectionDrag(event.active)) {
+      setSectionDragActive(true);
+      return;
+    }
     clearSpringTimer();
     const activeId = String(event.active.id);
     const source = findShortcutSection(state.config, activeId);
@@ -305,6 +323,7 @@ export function Grid() {
   function handleDragEnd(event: DragEndEvent) {
     if (isSectionDrag(event.active)) {
       suppressNextClick();
+      setSectionDragActive(false);
       const activeSectionId = sectionIdFromSortableId(String(event.active.id));
       const overSectionId = event.over
         ? sectionIdFromSortableId(String(event.over.id))
@@ -348,6 +367,7 @@ export function Grid() {
   function handleDragCancel(event: DragCancelEvent) {
     if (isSectionDrag(event.active)) {
       suppressNextClick();
+      setSectionDragActive(false);
       return;
     }
     clearSpringTimer();
@@ -411,6 +431,7 @@ export function Grid() {
             measure: (el) => getClientRect(el, { ignoreTransform: true }),
           },
         }}
+        modifiers={[sectionVerticalAxis]}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -435,14 +456,17 @@ export function Grid() {
 
         {!showDefault && namedSections.length === 0 && <HiddenDefaultNotice />}
 
-        {createPortal(
-          // Portaled to <body> so the ghost escapes the grid's stacking
-          // contexts — it must never slide behind headers or page padding.
-          <DragOverlay zIndex={60}>
-            {activeShortcut ? <GridTileGhost shortcut={activeShortcut} /> : undefined}
-          </DragOverlay>,
-          document.body
-        )}
+        {!sectionDragActive &&
+          createPortal(
+            // Portaled to <body> so the ghost escapes the grid's stacking
+            // contexts — it must never slide behind headers or page padding.
+            <DragOverlay zIndex={60}>
+              {activeShortcut ? (
+                <GridTileGhost shortcut={activeShortcut} />
+              ) : undefined}
+            </DragOverlay>,
+            document.body
+          )}
       </DndContext>
 
       {dialog.open && (
