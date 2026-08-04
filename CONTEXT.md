@@ -17,6 +17,11 @@ The complete persisted state of a user's new tab: an ordered list of Sections
 and a schema version. Owned entirely by the user's browser; there is no
 server-side state.
 
+### Preference
+A device-local setting that shapes how this browser's UI behaves (e.g.
+whether moving a Shortcut between Sections asks for confirmation). Not part
+of the Config: it never travels via Import / Export.
+
 ### Icon Source
 Where a Shortcut's icon comes from: either **auto** (resolved from the
 shortcut's domain) or **upload** (an image the user provided).

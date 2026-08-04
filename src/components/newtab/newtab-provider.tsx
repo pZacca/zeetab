@@ -17,6 +17,13 @@ import {
   serializeExport,
   exportFilename,
 } from "@/lib/newtab/import-export";
+import { moveShortcut as moveShortcutInConfig } from "@/lib/newtab/shortcut-move";
+import {
+  readPreferences,
+  setConfirmCrossSectionMove as setConfirmCrossSectionMoveInStorage,
+  setShowDefaultSection as setShowDefaultSectionInStorage,
+  type Preferences,
+} from "@/lib/newtab/preferences";
 
 export type Actions = {
   addShortcut: (sectionId: string, data: Omit<Shortcut, "id">) => void;
@@ -36,6 +43,9 @@ export type Actions = {
   replaceConfig: (config: Config) => void;
   exportConfig: () => void;
   reset: () => void;
+
+  setConfirmCrossSectionMove: (value: boolean) => void;
+  setShowDefaultSection: (value: boolean) => void;
 };
 
 export type Meta = {
@@ -45,7 +55,7 @@ export type Meta = {
 };
 
 type ContextValue = {
-  state: { config: Config };
+  state: { config: Config; preferences: Preferences };
   actions: Actions;
   meta: Meta;
 };
@@ -71,6 +81,11 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
 
   const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
+  // Device-local, outside the Config: its own storage key, no migration, no
+  // cross-tab store — just lazy-init from storage plus a setter that writes
+  // through and updates local state so the modal and settings sheet render
+  // the same value.
+  const [preferences, setPreferences] = useState<Preferences>(readPreferences);
 
   useEffect(() => attachStorageSync(store), [store]);
 
@@ -126,31 +141,7 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
         })),
 
       moveShortcut: (id, to) =>
-        applyWrite((prev) => {
-          let moving: Shortcut | undefined;
-          const detached = prev.sections.map((s) => {
-            const found = s.shortcuts.find((t) => t.id === id);
-            if (!found) return s;
-            moving = found;
-            return {
-              ...s,
-              shortcuts: s.shortcuts.filter((t) => t.id !== id),
-            };
-          });
-          if (!moving) return prev;
-          const movingShortcut: Shortcut = moving;
-          return {
-            ...prev,
-            sections: detached.map((s) => {
-              if (s.id !== to.sectionId) return s;
-              const insert =
-                typeof to.index === "number" ? to.index : s.shortcuts.length;
-              const next = [...s.shortcuts];
-              next.splice(insert, 0, movingShortcut);
-              return { ...s, shortcuts: next };
-            }),
-          };
-        }),
+        applyWrite((prev) => moveShortcutInConfig(prev, id, to)),
 
       addSection: (name) => {
         const id = crypto.randomUUID();
@@ -183,20 +174,12 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
       deleteSection: (id) =>
         applyWrite((prev) => {
           if (id === DEFAULT_SECTION_ID) return prev;
-          const victim = prev.sections.find((s) => s.id === id);
-          if (!victim) return prev;
+          if (!prev.sections.some((s) => s.id === id)) return prev;
+          // Deleting a Section deletes its Shortcuts with it — nothing is
+          // relocated, so both confirmation dialogs must say so.
           return {
             ...prev,
-            sections: prev.sections
-              .map((s) =>
-                s.id === DEFAULT_SECTION_ID
-                  ? {
-                      ...s,
-                      shortcuts: [...s.shortcuts, ...victim.shortcuts],
-                    }
-                  : s
-              )
-              .filter((s) => s.id !== id),
+            sections: prev.sections.filter((s) => s.id !== id),
           };
         }),
 
@@ -238,17 +221,23 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
       },
 
       reset: () => applyWrite(() => emptyConfig()),
+
+      setConfirmCrossSectionMove: (value) =>
+        setPreferences(setConfirmCrossSectionMoveInStorage(value)),
+
+      setShowDefaultSection: (value) =>
+        setPreferences(setShowDefaultSectionInStorage(value)),
     }),
     [applyWrite, config]
   );
 
   const value = useMemo<ContextValue>(
     () => ({
-      state: { config },
+      state: { config, preferences },
       actions,
       meta: { version: 1, storageUnavailable, quotaExceeded },
     }),
-    [config, actions, storageUnavailable, quotaExceeded]
+    [config, preferences, actions, storageUnavailable, quotaExceeded]
   );
 
   return (

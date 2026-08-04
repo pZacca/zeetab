@@ -46,7 +46,7 @@ CI (`.github/workflows/ci.yml`) runs lint, compile, test, and all three builds. 
 
 **Invariants** enforced across migrations and actions:
 
-- `sections[0]` is always the default section: `id === "default"` (`DEFAULT_SECTION_ID`), `name === null`. It can't be deleted, renamed, or reordered away from position 0; deleting another section moves its shortcuts into it.
+- `sections[0]` is always the default section: `id === "default"` (`DEFAULT_SECTION_ID`), `name === null`. It can't be deleted, renamed, or reordered away from position 0; deleting another section deletes its shortcuts with it.
 - Config updates are immutable (`applyWrite` takes `prev => next` updaters); returning `prev` unchanged skips the write.
 
 The `@` → `src/` path alias is configured in three places: WXT's generated tsconfig, `vite.demo.config.ts`, and `vitest.config.ts`. Adding config elsewhere means adding the alias there too.

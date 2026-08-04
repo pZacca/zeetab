@@ -6,7 +6,10 @@ import path from "node:path";
 // Builds the web demo (zeetab.zacca.dev) from the same source as the extension.
 export default defineConfig({
   root: "demo",
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react({ babel: { plugins: ["babel-plugin-react-compiler"] } }),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),

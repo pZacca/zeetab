@@ -12,7 +12,6 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
@@ -22,6 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, X } from "lucide-react";
 import { useNewtab } from "./newtab-provider";
 import { parseImport } from "@/lib/newtab/import-export";
+import { resolveSectionReorder } from "@/lib/newtab/grid-drag";
 import type { Config } from "@/lib/newtab/types";
 import {
   Sheet,
@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DEFAULT_SECTION_ID } from "@/lib/newtab/defaults";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Props = {
   open: boolean;
@@ -51,6 +52,9 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
   const { state, actions } = useNewtab();
   const [newSectionName, setNewSectionName] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  // Deleting a Section deletes its Shortcuts with it, so the row's trash
+  // button asks first — same dialog the grid's dropdown shows.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | undefined>();
   const [pendingImport, setPendingImport] = useState<Config | undefined>();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -63,15 +67,15 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
   );
 
   function onDragEnd(e: DragEndEvent) {
-    if (!e.over || e.active.id === e.over.id) return;
-    const ids = sortable.map((s) => s.id);
-    const from = ids.indexOf(String(e.active.id));
-    const to = ids.indexOf(String(e.over.id));
-    if (from === -1 || to === -1) return;
-    const reordered = arrayMove(ids, from, to);
-    startTransition(() =>
-      actions.reorderSections([DEFAULT_SECTION_ID, ...reordered])
+    if (!e.over) return;
+    const ordered = resolveSectionReorder(
+      state.config.sections.map((s) => s.id),
+      String(e.active.id),
+      String(e.over.id)
     );
+    // Synchronous on purpose: a deferred commit paints one frame with the
+    // row back in its old slot (see the grid's section dragEnd).
+    if (ordered) actions.reorderSections(ordered);
   }
 
   function onImportFile(file: File) {
@@ -165,7 +169,7 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
                         id={s.id}
                         name={s.name ?? ""}
                         onRename={(n) => actions.renameSection(s.id, n)}
-                        onDelete={() => actions.deleteSection(s.id)}
+                        onDelete={() => setConfirmDeleteId(s.id)}
                       />
                     ))}
                   </ul>
@@ -233,6 +237,28 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
               JSON · zacca-newtab-config-YYYY-MM-DD.json
             </p>
           </section>
+
+          <section className="grid gap-2 border-b border-border/40 px-5 py-4">
+            <h3 className={labelClass}>{"// preferences"}</h3>
+            <label className="flex items-center gap-2 font-ibm-plex-mono text-xs text-zinc-400">
+              <Checkbox
+                checked={state.preferences.confirmCrossSectionMove}
+                onCheckedChange={(checked) =>
+                  actions.setConfirmCrossSectionMove(checked === true)
+                }
+              />
+              ask before moving a shortcut to another section
+            </label>
+            <label className="flex items-center gap-2 font-ibm-plex-mono text-xs text-zinc-400">
+              <Checkbox
+                checked={state.preferences.showDefaultSection}
+                onCheckedChange={(checked) =>
+                  actions.setShowDefaultSection(checked === true)
+                }
+              />
+              show the default section
+            </label>
+          </section>
         </div>
 
         <div className="mt-auto px-5 py-4">
@@ -269,6 +295,37 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
                 }}
               >
                 reset
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={confirmDeleteId !== undefined}
+          onOpenChange={(o) => !o && setConfirmDeleteId(undefined)}
+        >
+          <AlertDialogContent className="border-border/40 bg-secondary text-zinc-100 sm:max-w-sm">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-ibm-plex-mono text-base text-zinc-100">
+                delete this section?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs text-zinc-500">
+                shortcuts in this section will be deleted too. this cannot be
+                undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2">
+              <AlertDialogCancel className="border-border/60 bg-transparent text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100">
+                cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => {
+                  if (confirmDeleteId) actions.deleteSection(confirmDeleteId);
+                  setConfirmDeleteId(undefined);
+                }}
+              >
+                delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
