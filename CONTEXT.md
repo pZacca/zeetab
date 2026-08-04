@@ -17,6 +17,12 @@ The complete persisted state of a user's new tab: an ordered list of Sections
 and a schema version. Owned entirely by the user's browser; there is no
 server-side state.
 
+### Preference
+A device-local UI setting, stored outside the Config under its own
+versioned key. Unlike the Config, Preferences never travel via
+Import/Export and don't participate in `CONFIG_VERSION` or migrations —
+they describe how this browser's UI behaves, not the user's data.
+
 ### Icon Source
 Where a Shortcut's icon comes from: either **auto** (resolved from the
 shortcut's domain) or **upload** (an image the user provided).

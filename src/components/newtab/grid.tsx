@@ -37,6 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const TileDialog = lazy(() =>
   import("./tile-dialog").then((m) => ({ default: m.TileDialog }))
@@ -67,6 +68,7 @@ export function Grid() {
   const [session, setSession] = useState<DragSessionState>(
     initialDragSessionState
   );
+  const [dontAskAgain, setDontAskAgain] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -89,7 +91,9 @@ export function Grid() {
     let next = session;
     let commit: ReturnType<typeof reduceDragSession>["commit"];
     for (const event of events) {
-      const result = reduceDragSession(next, event);
+      const result = reduceDragSession(next, event, {
+        confirmCrossSection: state.preferences.confirmCrossSectionMove,
+      });
       next = result.state;
       if (result.commit) commit = result.commit;
     }
@@ -192,7 +196,10 @@ export function Grid() {
       <AlertDialog
         open={pending !== undefined}
         onOpenChange={(open) => {
-          if (!open) send([{ type: "cancelConfirmation" }]);
+          if (!open) {
+            send([{ type: "cancelConfirmation" }]);
+            setDontAskAgain(false);
+          }
         }}
       >
         <AlertDialogContent className="border-border/40 bg-secondary text-zinc-100 sm:max-w-sm">
@@ -205,14 +212,30 @@ export function Grid() {
               position you dragged it to.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <label className="flex items-center gap-2 font-ibm-plex-mono text-xs text-zinc-400">
+            <Checkbox
+              checked={dontAskAgain}
+              onCheckedChange={(checked) => setDontAskAgain(checked === true)}
+            />
+            don&apos;t ask again
+          </label>
           <AlertDialogFooter className="gap-2">
             <AlertDialogCancel
               className="border-border/60 bg-transparent text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100"
-              onClick={() => send([{ type: "cancelConfirmation" }])}
+              onClick={() => {
+                send([{ type: "cancelConfirmation" }]);
+                setDontAskAgain(false);
+              }}
             >
               cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => send([{ type: "confirm" }])}>
+            <AlertDialogAction
+              onClick={() => {
+                if (dontAskAgain) actions.setConfirmCrossSectionMove(false);
+                send([{ type: "confirm" }]);
+                setDontAskAgain(false);
+              }}
+            >
               move
             </AlertDialogAction>
           </AlertDialogFooter>
