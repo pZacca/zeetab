@@ -18,10 +18,9 @@ and a schema version. Owned entirely by the user's browser; there is no
 server-side state.
 
 ### Preference
-A device-local UI setting, stored outside the Config under its own
-versioned key. Unlike the Config, Preferences never travel via
-Import/Export and don't participate in `CONFIG_VERSION` or migrations —
-they describe how this browser's UI behaves, not the user's data.
+A device-local setting that shapes how this browser's UI behaves (e.g.
+whether moving a Shortcut between Sections asks for confirmation). Not part
+of the Config: it never travels via Import / Export.
 
 ### Icon Source
 Where a Shortcut's icon comes from: either **auto** (resolved from the
