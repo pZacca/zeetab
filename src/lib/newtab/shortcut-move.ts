@@ -29,17 +29,30 @@ export function moveShortcut(
   to: MoveShortcutTarget
 ): Config {
   let moving: Shortcut | undefined;
+  let sourceSectionId: string | undefined;
+  let sourceIndex = -1;
   for (const section of config.sections) {
-    const found = section.shortcuts.find((t) => t.id === shortcutId);
-    if (found) {
-      moving = found;
+    const found = section.shortcuts.findIndex((t) => t.id === shortcutId);
+    if (found !== -1) {
+      moving = section.shortcuts[found];
+      sourceSectionId = section.id;
+      sourceIndex = found;
       break;
     }
   }
   if (!moving) return config;
 
-  const targetExists = config.sections.some((s) => s.id === to.sectionId);
-  if (!targetExists) return config;
+  const target = config.sections.find((s) => s.id === to.sectionId);
+  if (!target) return config;
+
+  // Identity move: same Section, same resulting position (detach-then-insert
+  // semantics — append lands at length-1 after the detach). Returning the
+  // same reference lets callers skip the write entirely.
+  if (sourceSectionId === to.sectionId) {
+    const insert =
+      typeof to.index === "number" ? to.index : target.shortcuts.length - 1;
+    if (insert === sourceIndex) return config;
+  }
 
   const movingShortcut: Shortcut = moving;
 

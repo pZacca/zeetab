@@ -57,7 +57,15 @@ describe("moveShortcut", () => {
       { id: DEFAULT_SECTION_ID, ids: ["A", "B", "C"] },
     ]);
     const next = moveShortcut(cfg, "A", { sectionId: DEFAULT_SECTION_ID, index: 0 });
-    expect(ids(next, DEFAULT_SECTION_ID)).toEqual(["A", "B", "C"]);
+    expect(next).toBe(cfg);
+  });
+
+  it("no-ops (same reference) when appending a Shortcut already last in its Section", () => {
+    const cfg = configWith([
+      { id: DEFAULT_SECTION_ID, ids: ["A", "B", "C"] },
+    ]);
+    const next = moveShortcut(cfg, "C", { sectionId: DEFAULT_SECTION_ID });
+    expect(next).toBe(cfg);
   });
 
   it("inserts at an exact index in another Section", () => {
@@ -116,11 +124,11 @@ describe("moveShortcut", () => {
     expect(next).toBe(cfg);
   });
 
-  it("moving within the same Section to the same index is a no-op", () => {
+  it("moving within the same Section to the same index is a no-op (same reference)", () => {
     const cfg = configWith([
       { id: DEFAULT_SECTION_ID, ids: ["A", "B", "C"] },
     ]);
     const next = moveShortcut(cfg, "B", { sectionId: DEFAULT_SECTION_ID, index: 1 });
-    expect(ids(next, DEFAULT_SECTION_ID)).toEqual(["A", "B", "C"]);
+    expect(next).toBe(cfg);
   });
 });
