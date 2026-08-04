@@ -1,8 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import { ChevronDown, MoreVertical } from "lucide-react";
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import type { Section } from "@/lib/newtab/types";
+import { reorderTargetIndex } from "@/lib/newtab/grid-drag";
 import { useNewtab } from "./newtab-provider";
 import { GridTile } from "./grid-tile";
 import { GridAddTile } from "./grid-add-tile";
@@ -39,6 +49,22 @@ export function GridSection({ section, onOpenTileDialog }: Props) {
   const [draft, setDraft] = useState(section.name ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const isDefault = section.name === null;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+  );
+  const shortcutIds = section.shortcuts.map((s) => s.id);
+
+  function onDragEnd(e: DragEndEvent) {
+    if (!e.over) return;
+    const activeId = String(e.active.id);
+    const overId = String(e.over.id);
+    const target = reorderTargetIndex(shortcutIds, activeId, overId);
+    if (target === undefined) return;
+    startTransition(() =>
+      actions.moveShortcut(activeId, { sectionId: section.id, index: target })
+    );
+  }
 
   function commitRename() {
     const trimmed = draft.trim();
@@ -130,27 +156,35 @@ export function GridSection({ section, onOpenTileDialog }: Props) {
       )}
 
       {!section.collapsed && (
-        <div
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
-            contentVisibility: "auto",
-          }}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
         >
-          {section.shortcuts.map((s) => (
-            <GridTile
-              key={s.id}
-              shortcut={s}
-              sectionId={section.id}
-              onEdit={(id) =>
-                onOpenTileDialog({ sectionId: section.id, editingId: id })
-              }
-            />
-          ))}
-          <GridAddTile
-            onClick={() => onOpenTileDialog({ sectionId: section.id })}
-          />
-        </div>
+          <SortableContext items={shortcutIds} strategy={rectSortingStrategy}>
+            <div
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+                contentVisibility: "auto",
+              }}
+            >
+              {section.shortcuts.map((s) => (
+                <GridTile
+                  key={s.id}
+                  shortcut={s}
+                  sectionId={section.id}
+                  onEdit={(id) =>
+                    onOpenTileDialog({ sectionId: section.id, editingId: id })
+                  }
+                />
+              ))}
+              <GridAddTile
+                onClick={() => onOpenTileDialog({ sectionId: section.id })}
+              />
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
