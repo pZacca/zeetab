@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DEFAULT_SECTION_ID } from "@/lib/newtab/defaults";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Props = {
   open: boolean;
@@ -232,6 +233,19 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
             <p className="font-ibm-plex-mono text-[10px] text-zinc-600">
               JSON · zacca-newtab-config-YYYY-MM-DD.json
             </p>
+          </section>
+
+          <section className="grid gap-2 border-b border-border/40 px-5 py-4">
+            <h3 className={labelClass}>{"// preferences"}</h3>
+            <label className="flex items-center gap-2 font-ibm-plex-mono text-xs text-zinc-400">
+              <Checkbox
+                checked={state.preferences.confirmCrossSectionMove}
+                onCheckedChange={(checked) =>
+                  actions.setConfirmCrossSectionMove(checked === true)
+                }
+              />
+              ask before moving a shortcut to another section
+            </label>
           </section>
         </div>
 
