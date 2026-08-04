@@ -31,3 +31,22 @@ export function reorderTargetIndex(
 
   return overIndex;
 }
+
+/**
+ * Resolves the insertion index for dropping a Shortcut into a *different*
+ * Section than it started in, given the target Section's current Shortcut
+ * ids (which never include the dragged Shortcut, since it lives elsewhere).
+ *
+ * When `overId` names one of the target's Shortcuts, the drop lands at that
+ * Shortcut's index (matching `moveShortcut`'s pre-insert semantics). When
+ * `overId` is anything else — the Section's own container id, its header,
+ * an empty Section — the drop lands at the end, which for an empty Section
+ * is simply index 0.
+ */
+export function crossSectionDropIndex(
+  targetSectionIds: string[],
+  overId: string
+): number {
+  const index = targetSectionIds.indexOf(overId);
+  return index === -1 ? targetSectionIds.length : index;
+}
