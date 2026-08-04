@@ -2,6 +2,8 @@
 
 import { memo, useState, type ReactNode } from "react";
 import { MoreVertical } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { Shortcut } from "@/lib/newtab/types";
 import { Favicon } from "./favicon";
 import { tileMenuItems } from "./tile-menu-items";
@@ -36,6 +38,13 @@ type Props = {
 function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
   const { state, actions } = useNewtab();
   const [open, setOpen] = useState(false);
+  const { setNodeRef, listeners, transform, transition, isDragging } =
+    useSortable({ id: shortcut.id });
+  const dragStyle = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
 
   const commonActions = {
     onEdit: () => onEdit(shortcut.id),
@@ -126,8 +135,11 @@ function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
 
   const tile = (
     <a
+      ref={setNodeRef}
       href={shortcut.url}
       aria-label={visibleLabel}
+      style={dragStyle}
+      {...listeners}
       className="group relative flex w-[96px] flex-col items-center gap-2 rounded-lg p-2 outline-none hover:bg-zinc-900/60 focus-visible:ring-2 focus-visible:ring-primary"
     >
       <Favicon
