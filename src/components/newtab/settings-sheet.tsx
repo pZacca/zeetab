@@ -52,6 +52,9 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
   const { state, actions } = useNewtab();
   const [newSectionName, setNewSectionName] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  // Deleting a Section deletes its Shortcuts with it, so the row's trash
+  // button asks first — same dialog the grid's dropdown shows.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | undefined>();
   const [pendingImport, setPendingImport] = useState<Config | undefined>();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -164,7 +167,7 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
                         id={s.id}
                         name={s.name ?? ""}
                         onRename={(n) => actions.renameSection(s.id, n)}
-                        onDelete={() => actions.deleteSection(s.id)}
+                        onDelete={() => setConfirmDeleteId(s.id)}
                       />
                     ))}
                   </ul>
@@ -290,6 +293,37 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
                 }}
               >
                 reset
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={confirmDeleteId !== undefined}
+          onOpenChange={(o) => !o && setConfirmDeleteId(undefined)}
+        >
+          <AlertDialogContent className="border-border/40 bg-secondary text-zinc-100 sm:max-w-sm">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-ibm-plex-mono text-base text-zinc-100">
+                delete this section?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs text-zinc-500">
+                shortcuts in this section will be deleted too. this cannot be
+                undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2">
+              <AlertDialogCancel className="border-border/60 bg-transparent text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100">
+                cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => {
+                  if (confirmDeleteId) actions.deleteSection(confirmDeleteId);
+                  setConfirmDeleteId(undefined);
+                }}
+              >
+                delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

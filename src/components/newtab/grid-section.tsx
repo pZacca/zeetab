@@ -61,7 +61,7 @@ export function GridSection({
   sectionDragDisabled,
   onOpenTileDialog,
 }: Props) {
-  const { state, actions } = useNewtab();
+  const { actions } = useNewtab();
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(section.name ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -241,9 +241,8 @@ export function GridSection({
               delete this section?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-zinc-500">
-              {state.preferences.showDefaultSection
-                ? "shortcuts in this section will move to the default section."
-                : "shortcuts in this section will move to the default section — which you have hidden, so they'll stay out of sight until you show it again."}
+              shortcuts in this section will be deleted too. this cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">

@@ -174,20 +174,12 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
       deleteSection: (id) =>
         applyWrite((prev) => {
           if (id === DEFAULT_SECTION_ID) return prev;
-          const victim = prev.sections.find((s) => s.id === id);
-          if (!victim) return prev;
+          if (!prev.sections.some((s) => s.id === id)) return prev;
+          // Deleting a Section deletes its Shortcuts with it — nothing is
+          // relocated, so both confirmation dialogs must say so.
           return {
             ...prev,
-            sections: prev.sections
-              .map((s) =>
-                s.id === DEFAULT_SECTION_ID
-                  ? {
-                      ...s,
-                      shortcuts: [...s.shortcuts, ...victim.shortcuts],
-                    }
-                  : s
-              )
-              .filter((s) => s.id !== id),
+            sections: prev.sections.filter((s) => s.id !== id),
           };
         }),
 
