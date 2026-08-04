@@ -500,6 +500,106 @@ describe("reduceDragSession", () => {
     });
   });
 
+  describe("confirmation-disabled path (Preference off)", () => {
+    it("commits immediately on cross-Section drop when confirmCrossSection is false, skipping pendingConfirmation", () => {
+      const dragging = reduceDragSession(initialDragSessionState, {
+        type: "dragStart",
+        shortcutId: "A",
+        sectionId: "default",
+        index: 0,
+      }).state;
+      const overed = reduceDragSession(dragging, {
+        type: "dragOver",
+        sectionId: "s2",
+        index: 1,
+      }).state;
+
+      const { state, commit } = reduceDragSession(
+        overed,
+        { type: "drop" },
+        { confirmCrossSection: false }
+      );
+
+      expect(state).toEqual({ phase: "idle" });
+      expect(commit).toEqual({
+        shortcutId: "A",
+        sectionId: "s2",
+        index: 1,
+        expandSection: false,
+      });
+    });
+
+    it("still commits immediately for a same-Section drop when confirmCrossSection is false", () => {
+      const dragging = reduceDragSession(initialDragSessionState, {
+        type: "dragStart",
+        shortcutId: "A",
+        sectionId: "default",
+        index: 0,
+      }).state;
+      const overed = reduceDragSession(dragging, {
+        type: "dragOver",
+        sectionId: "default",
+        index: 2,
+      }).state;
+
+      const { state, commit } = reduceDragSession(
+        overed,
+        { type: "drop" },
+        { confirmCrossSection: false }
+      );
+
+      expect(state).toEqual({ phase: "idle" });
+      expect(commit).toEqual({
+        shortcutId: "A",
+        sectionId: "default",
+        index: 2,
+        expandSection: false,
+      });
+    });
+
+    it("defaults to confirming (pendingConfirmation) when no options are passed", () => {
+      const dragging = reduceDragSession(initialDragSessionState, {
+        type: "dragStart",
+        shortcutId: "A",
+        sectionId: "default",
+        index: 0,
+      }).state;
+      const overed = reduceDragSession(dragging, {
+        type: "dragOver",
+        sectionId: "s2",
+        index: 1,
+      }).state;
+
+      const { state, commit } = reduceDragSession(overed, { type: "drop" });
+
+      expect(state.phase).toBe("pendingConfirmation");
+      expect(commit).toBeUndefined();
+    });
+
+    it("defaults to confirming when confirmCrossSection is explicitly true", () => {
+      const dragging = reduceDragSession(initialDragSessionState, {
+        type: "dragStart",
+        shortcutId: "A",
+        sectionId: "default",
+        index: 0,
+      }).state;
+      const overed = reduceDragSession(dragging, {
+        type: "dragOver",
+        sectionId: "s2",
+        index: 1,
+      }).state;
+
+      const { state, commit } = reduceDragSession(
+        overed,
+        { type: "drop" },
+        { confirmCrossSection: true }
+      );
+
+      expect(state.phase).toBe("pendingConfirmation");
+      expect(commit).toBeUndefined();
+    });
+  });
+
   describe("cancelConfirmation (cancel→revert)", () => {
     it("reverts to idle without a commit, restoring the pre-drag arrangement", () => {
       const dragging = reduceDragSession(initialDragSessionState, {

@@ -26,6 +26,12 @@
 // only carries `expandSection: true` when its target Section was actually
 // sprung open, letting the caller flip the persisted flag exclusively on a
 // confirmed drop into it.
+//
+// Whether a cross-Section drop pends confirmation at all is controlled by
+// the `confirmCrossSection` option (default `true`, matching the
+// Preference module's default-to-confirming behavior) — the caller reads
+// the device-local Preference and passes it in on `drop`. With it `false`,
+// a cross-Section drop commits immediately, same as a same-Section one.
 
 export type DragSessionState =
   | { readonly phase: "idle" }
@@ -91,16 +97,24 @@ export type DragSessionResult = {
   readonly commit?: DragSessionCommit;
 };
 
+export type DragSessionOptions = {
+  /** Whether a cross-Section drop pends confirmation. Defaults to `true`. */
+  readonly confirmCrossSection?: boolean;
+};
+
 export const initialDragSessionState: DragSessionState = { phase: "idle" };
 
 /**
- * Advances a drag session by one event. Pure: same `(state, event)` always
- * yields the same `DragSessionResult`.
+ * Advances a drag session by one event. Pure: same
+ * `(state, event, options)` always yields the same `DragSessionResult`.
  */
 export function reduceDragSession(
   state: DragSessionState,
-  event: DragSessionEvent
+  event: DragSessionEvent,
+  options: DragSessionOptions = {}
 ): DragSessionResult {
+  const confirmCrossSection = options.confirmCrossSection ?? true;
+
   switch (event.type) {
     case "dragStart": {
       return {
@@ -168,8 +182,10 @@ export function reduceDragSession(
         springExpandedSectionIds,
       } = state;
 
-      if (overSectionId === sourceSectionId) {
-        // Same Section: the guard is off. Commit immediately.
+      if (overSectionId === sourceSectionId || !confirmCrossSection) {
+        // Same Section: the guard is off. Cross Section with the
+        // confirmation Preference off: guarded but not asked. Either way,
+        // commit immediately.
         return {
           state: { phase: "idle" },
           commit: {
@@ -181,8 +197,8 @@ export function reduceDragSession(
         };
       }
 
-      // Cross Section: the gesture guard kicks in. Await confirmation —
-      // nothing is written yet.
+      // Cross Section, confirmation Preference on: the gesture guard kicks
+      // in. Await confirmation — nothing is written yet.
       return {
         state: {
           phase: "pendingConfirmation",

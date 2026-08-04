@@ -18,6 +18,11 @@ import {
   exportFilename,
 } from "@/lib/newtab/import-export";
 import { moveShortcut as moveShortcutInConfig } from "@/lib/newtab/shortcut-move";
+import {
+  readPreferences,
+  setConfirmCrossSectionMove as setConfirmCrossSectionMoveInStorage,
+  type Preferences,
+} from "@/lib/newtab/preferences";
 
 export type Actions = {
   addShortcut: (sectionId: string, data: Omit<Shortcut, "id">) => void;
@@ -37,6 +42,8 @@ export type Actions = {
   replaceConfig: (config: Config) => void;
   exportConfig: () => void;
   reset: () => void;
+
+  setConfirmCrossSectionMove: (value: boolean) => void;
 };
 
 export type Meta = {
@@ -46,7 +53,7 @@ export type Meta = {
 };
 
 type ContextValue = {
-  state: { config: Config };
+  state: { config: Config; preferences: Preferences };
   actions: Actions;
   meta: Meta;
 };
@@ -72,6 +79,11 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
 
   const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
+  // Device-local, outside the Config: its own storage key, no migration, no
+  // cross-tab store — just lazy-init from storage plus a setter that writes
+  // through and updates local state so the modal and settings sheet render
+  // the same value.
+  const [preferences, setPreferences] = useState<Preferences>(readPreferences);
 
   useEffect(() => attachStorageSync(store), [store]);
 
@@ -215,17 +227,20 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
       },
 
       reset: () => applyWrite(() => emptyConfig()),
+
+      setConfirmCrossSectionMove: (value) =>
+        setPreferences(setConfirmCrossSectionMoveInStorage(value)),
     }),
     [applyWrite, config]
   );
 
   const value = useMemo<ContextValue>(
     () => ({
-      state: { config },
+      state: { config, preferences },
       actions,
       meta: { version: 1, storageUnavailable, quotaExceeded },
     }),
-    [config, actions, storageUnavailable, quotaExceeded]
+    [config, preferences, actions, storageUnavailable, quotaExceeded]
   );
 
   return (
