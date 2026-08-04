@@ -1,13 +1,22 @@
 "use client";
 
-import { Suspense, lazy, startTransition, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  startTransition,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   closestCenter,
   DndContext,
+  pointerWithin,
   PointerSensor,
   TouchSensor,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -53,6 +62,16 @@ type DialogState =
 // springs open (see drag-session.ts's spring-loading rules).
 const SPRING_DELAY_MS = 600;
 
+// "Drop where I'm pointing": prefer the droppable actually under the
+// pointer, falling back to nearest-center for the gaps between tiles.
+// Center-distance alone can never pick a Section header — the header strip
+// spans the grid's full width, so its center is far from a pointer hovering
+// it and some nearby tile always wins.
+const collisionDetection: CollisionDetection = (args) => {
+  const withinPointer = pointerWithin(args);
+  return withinPointer.length > 0 ? withinPointer : closestCenter(args);
+};
+
 function overTarget(
   over: { id: string | number; data: { current?: unknown } } | null
 ): DropOverTarget | undefined {
@@ -74,6 +93,14 @@ export function Grid() {
   const [session, setSession] = useState<DragSessionState>(
     initialDragSessionState
   );
+  // Always-current session, so callbacks that fire outside the render that
+  // created them (the spring timer, dnd-kit's late dragEnd) never reduce
+  // against a stale snapshot — a stale base would both no-op the spring
+  // check and rewind the live preview.
+  const sessionRef = useRef<DragSessionState>(initialDragSessionState);
+  // Set when a drag just ended: the browser still fires a click on the tile
+  // under the pointer, which on an <a> would navigate to the Shortcut.
+  const suppressClickRef = useRef(false);
   // The spring-loading clock: real time, owned here (not the pure
   // reducer). Cleared whenever the hovered header changes or the drag ends.
   const springTimer = useRef<{
@@ -81,6 +108,23 @@ export function Grid() {
     timeoutId: ReturnType<typeof globalThis.setTimeout>;
   } | null>(null);
   const [dontAskAgain, setDontAskAgain] = useState(false);
+
+  // The post-drag click guard has to be a NATIVE window-capture listener:
+  // dnd-kit suppresses the click with stopPropagation in a document-capture
+  // listener, which silences every React handler (they all live at the
+  // root) — but stopPropagation doesn't cancel the <a>'s default action,
+  // so the tab would still navigate to the dragged Shortcut. Window capture
+  // runs first and can actually preventDefault it.
+  useEffect(() => {
+    const guard = (e: MouseEvent) => {
+      if (suppressClickRef.current || sessionRef.current.phase === "dragging") {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("click", guard, { capture: true });
+    return () => window.removeEventListener("click", guard, { capture: true });
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -100,7 +144,7 @@ export function Grid() {
   // dragEnd can resolve `dragOver` + `drop` against the same base state
   // without racing React's async state updates.
   function send(events: DragSessionEvent[]) {
-    let next = session;
+    let next = sessionRef.current;
     let commit: ReturnType<typeof reduceDragSession>["commit"];
     for (const event of events) {
       const result = reduceDragSession(next, event, {
@@ -109,6 +153,7 @@ export function Grid() {
       next = result.state;
       if (result.commit) commit = result.commit;
     }
+    sessionRef.current = next;
     setSession(next);
     if (commit) {
       const { shortcutId, sectionId, index, expandSection } = commit;
@@ -173,29 +218,54 @@ export function Grid() {
     clearSpringTimer();
     const over = overTarget(event.over);
     if (!over) return;
-    const target = resolveDropTarget(state.config, activeId, over);
+    // Resolve against what the user is LOOKING at — the live preview — not
+    // the committed config. dnd-kit's `over` comes from the rendered DOM,
+    // where earlier dragOvers have already moved tiles; resolving that pair
+    // against the un-previewed config computes stale indexes.
+    const target = resolveDropTarget(currentPreview(), activeId, over);
     if (!target) return;
     send([{ type: "dragOver", sectionId: target.sectionId, index: target.index }]);
   }
 
+  // The Config as currently rendered: committed state plus the in-flight
+  // drag preview. Reads sessionRef so event handlers see the same picture
+  // the DOM shows, not the render they were created in.
+  function currentPreview(): Config {
+    const s = sessionRef.current;
+    if (s.phase !== "dragging") return state.config;
+    return moveShortcut(state.config, s.shortcutId, {
+      sectionId: s.overSectionId,
+      index: s.overIndex,
+    });
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     clearSpringTimer();
-    const activeId = String(event.active.id);
-    const over = overTarget(event.over);
-    const target = over ? resolveDropTarget(state.config, activeId, over) : undefined;
-    if (!target) {
+    suppressNextClick();
+    if (!event.over) {
       send([{ type: "dragCancel" }]);
       return;
     }
-    send([
-      { type: "dragOver", sectionId: target.sectionId, index: target.index },
-      { type: "drop" },
-    ]);
+    // The live preview really moves tiles in the DOM, so by drop time the
+    // pointer usually sits over the dragged tile itself — re-resolving that
+    // against the un-previewed config would discard the drop. The session
+    // already tracked the last valid target on every dragOver; trust it.
+    send([{ type: "drop" }]);
   }
 
   function handleDragCancel() {
     clearSpringTimer();
+    suppressNextClick();
     send([{ type: "dragCancel" }]);
+  }
+
+  function suppressNextClick() {
+    suppressClickRef.current = true;
+    // The post-drag click fires in the same task as pointerup; anything
+    // after that is a genuine click again.
+    globalThis.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 0);
   }
 
   const previewConfig: Config =
@@ -217,7 +287,7 @@ export function Grid() {
     <div className="mx-auto max-w-5xl px-8 py-12">
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
