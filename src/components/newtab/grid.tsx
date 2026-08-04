@@ -131,8 +131,9 @@ export function Grid() {
         e.stopPropagation();
       }
     };
-    window.addEventListener("click", guard, { capture: true });
-    return () => window.removeEventListener("click", guard, { capture: true });
+    globalThis.addEventListener("click", guard, { capture: true });
+    return () =>
+      globalThis.removeEventListener("click", guard, { capture: true });
   }, []);
 
   const sensors = useSensors(
