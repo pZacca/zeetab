@@ -1,9 +1,11 @@
 // src/lib/newtab/grid-drag.ts
 //
-// Pure helper bridging a dnd-kit drag-end event to the `moveShortcut`
-// domain transformation for a within-Section reorder on the grid.
-// No React, no dnd-kit imports — just ids in, an insertion index (or
-// `undefined` for a no-op) out.
+// Pure helpers bridging dnd-kit drag events to the `moveShortcut` domain
+// transformation, for both within-Section reorder and cross-Section drops
+// on the grid. No React, no dnd-kit imports — plain ids and Config in,
+// an insertion target out.
+
+import type { Config } from "./types";
 
 /**
  * Resolves the insertion index for reordering `activeId` to land where
@@ -49,4 +51,64 @@ export function crossSectionDropIndex(
 ): number {
   const index = targetSectionIds.indexOf(overId);
   return index === -1 ? targetSectionIds.length : index;
+}
+
+/**
+ * Locates a Shortcut's current Section and index within it.
+ * `undefined` when the Shortcut id isn't present anywhere in `config`.
+ */
+export function findShortcutSection(
+  config: Config,
+  shortcutId: string
+): { sectionId: string; index: number } | undefined {
+  for (const section of config.sections) {
+    const index = section.shortcuts.findIndex((s) => s.id === shortcutId);
+    if (index !== -1) return { sectionId: section.id, index };
+  }
+  return undefined;
+}
+
+export type DropOverTarget = {
+  /** The id of whatever dnd-kit reports as `over`: a Shortcut or a Section container. */
+  id: string;
+  /** The Section id owning `id`, when `id` names a Shortcut. */
+  sectionId?: string;
+};
+
+/**
+ * Resolves a dnd-kit drag event's `active`/`over` pair to an exact
+ * `{ sectionId, index }` drop target against the live `config` — the
+ * single seam grid components call to translate a dnd-kit event into a
+ * `moveShortcut`-shaped target, for both within- and cross-Section drops.
+ *
+ * `undefined` means "no-op, skip this event": the active Shortcut is
+ * unknown, `over` doesn't resolve to any Section, or (same-Section only)
+ * the drop lands back where the Shortcut already is.
+ */
+export function resolveDropTarget(
+  config: Config,
+  activeId: string,
+  over: DropOverTarget
+): { sectionId: string; index: number } | undefined {
+  const overSectionId = config.sections.some((s) => s.id === over.id)
+    ? over.id
+    : over.sectionId;
+  if (!overSectionId) return undefined;
+
+  const source = findShortcutSection(config, activeId);
+  if (!source) return undefined;
+
+  const targetSection = config.sections.find((s) => s.id === overSectionId);
+  if (!targetSection) return undefined;
+  const targetIds = targetSection.shortcuts.map((s) => s.id);
+
+  if (overSectionId === source.sectionId) {
+    const index = reorderTargetIndex(targetIds, activeId, over.id);
+    return index === undefined ? undefined : { sectionId: overSectionId, index };
+  }
+
+  return {
+    sectionId: overSectionId,
+    index: crossSectionDropIndex(targetIds, over.id),
+  };
 }
