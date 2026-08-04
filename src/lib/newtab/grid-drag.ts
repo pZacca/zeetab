@@ -112,3 +112,27 @@ export function resolveDropTarget(
     index: crossSectionDropIndex(targetIds, over.id),
   };
 }
+
+const SECTION_HEADER_DROPPABLE_PREFIX = "section-header:";
+
+/**
+ * The dnd-kit droppable id for a collapsed Section's header — the spring-
+ * loading target hovered before the Section expands. Distinct from the
+ * Section's own container id so `resolveDropTarget` (and callers) can tell
+ * "hovering the header" apart from "hovering the expanded content area".
+ */
+export function sectionHeaderDroppableId(sectionId: string): string {
+  return `${SECTION_HEADER_DROPPABLE_PREFIX}${sectionId}`;
+}
+
+/**
+ * Recovers the Section id from a header droppable id produced by
+ * `sectionHeaderDroppableId`. `undefined` for any other id.
+ */
+export function sectionIdFromHeaderDroppableId(
+  id: string
+): string | undefined {
+  return id.startsWith(SECTION_HEADER_DROPPABLE_PREFIX)
+    ? id.slice(SECTION_HEADER_DROPPABLE_PREFIX.length)
+    : undefined;
+}
