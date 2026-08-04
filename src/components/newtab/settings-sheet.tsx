@@ -246,6 +246,15 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
               />
               ask before moving a shortcut to another section
             </label>
+            <label className="flex items-center gap-2 font-ibm-plex-mono text-xs text-zinc-400">
+              <Checkbox
+                checked={state.preferences.showDefaultSection}
+                onCheckedChange={(checked) =>
+                  actions.setShowDefaultSection(checked === true)
+                }
+              />
+              show the default section
+            </label>
           </section>
         </div>
 

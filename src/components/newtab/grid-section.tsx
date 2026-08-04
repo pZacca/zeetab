@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, MoreVertical } from "lucide-react";
+import { ChevronDown, GripVertical, MoreVertical } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { Section } from "@/lib/newtab/types";
-import { sectionHeaderDroppableId } from "@/lib/newtab/grid-drag";
+import {
+  sectionHeaderDroppableId,
+  sectionSortableId,
+} from "@/lib/newtab/grid-drag";
 import { useNewtab } from "./newtab-provider";
 import { GridTile } from "./grid-tile";
 import { GridAddTile } from "./grid-add-tile";
@@ -36,6 +44,11 @@ type Props = {
    * unless the caller commits a drop into it. See drag-session.ts.
    */
   springExpanded: boolean;
+  /**
+   * True when there are fewer than two named Sections — the drag handle
+   * still renders (grayed out) but can't start a drag.
+   */
+  sectionDragDisabled: boolean;
   onOpenTileDialog: (args: {
     sectionId: string;
     editingId?: string | undefined;
@@ -45,13 +58,31 @@ type Props = {
 export function GridSection({
   section,
   springExpanded,
+  sectionDragDisabled,
   onOpenTileDialog,
 }: Props) {
-  const { actions } = useNewtab();
+  const { state, actions } = useNewtab();
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(section.name ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const isDefault = section.name === null;
+
+  // Whole-Section drag: the Section itself is the sortable node (no ghost
+  // overlay — the real thing follows the pointer), activated only from the
+  // handle in the header. The default Section renders no header, so it
+  // never participates.
+  const {
+    attributes: sortableAttributes,
+    listeners: sortableListeners,
+    setNodeRef: setSortableRef,
+    transform: sortableTransform,
+    transition: sortableTransition,
+    isDragging: isSectionDragging,
+  } = useSortable({
+    id: sectionSortableId(section.id),
+    data: { type: "section", sectionId: section.id },
+    disabled: isDefault || sectionDragDisabled,
+  });
   // Spring-loading: a collapsed Section renders its content anyway once a
   // dragged tile has hovered its header long enough. The persisted
   // `collapsed` flag itself never changes from this alone.
@@ -77,12 +108,32 @@ export function GridSection({
   }
 
   return (
-    <section className="mb-10">
+    <section
+      ref={setSortableRef}
+      className="mb-10"
+      style={{
+        transform: CSS.Transform.toString(sortableTransform),
+        transition: sortableTransition,
+        // The dragged Section must paint above the siblings sliding around
+        // it; its drag transform already makes it a stacking context.
+        zIndex: isSectionDragging ? 40 : undefined,
+      }}
+    >
       {!isDefault && (
         <header
           ref={bodyVisible ? undefined : setHeaderDroppableRef}
-          className="mb-3 flex items-center gap-2"
+          className="relative mb-3 flex items-center gap-2"
         >
+          <button
+            type="button"
+            aria-label="Drag to reorder section"
+            {...sortableAttributes}
+            {...sortableListeners}
+            disabled={sectionDragDisabled}
+            className="absolute top-1/2 -left-7 grid size-6 -translate-y-1/2 cursor-grab touch-none place-items-center rounded text-zinc-600 transition-colors hover:text-zinc-200 active:cursor-grabbing disabled:cursor-default disabled:text-zinc-800 disabled:hover:text-zinc-800"
+          >
+            <GripVertical className="size-4" />
+          </button>
           <button
             type="button"
             onClick={() => actions.toggleSectionCollapse(section.id)}
@@ -190,7 +241,9 @@ export function GridSection({
               delete this section?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-zinc-500">
-              shortcuts in this section will move to the default section.
+              {state.preferences.showDefaultSection
+                ? "shortcuts in this section will move to the default section."
+                : "shortcuts in this section will move to the default section — which you have hidden, so they'll stay out of sight until you show it again."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">

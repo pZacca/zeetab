@@ -4,8 +4,11 @@ import {
   crossSectionDropIndex,
   findShortcutSection,
   resolveDropTarget,
+  resolveSectionReorder,
   sectionHeaderDroppableId,
   sectionIdFromHeaderDroppableId,
+  sectionSortableId,
+  sectionIdFromSortableId,
 } from "./grid-drag";
 import { emptyConfig, DEFAULT_SECTION_ID } from "./defaults";
 import type { Config, Shortcut } from "./types";
@@ -143,6 +146,66 @@ describe("resolveDropTarget", () => {
     expect(
       resolveDropTarget(cfg, "A", { id: "floating-overlay-id" })
     ).toBeUndefined();
+  });
+});
+
+describe("resolveSectionReorder", () => {
+  const ids = [DEFAULT_SECTION_ID, "s1", "s2", "s3"];
+
+  it("moves a named Section forward to the over Section's position", () => {
+    expect(resolveSectionReorder(ids, "s1", "s3")).toEqual([
+      DEFAULT_SECTION_ID,
+      "s2",
+      "s3",
+      "s1",
+    ]);
+  });
+
+  it("moves a named Section backward to the over Section's position", () => {
+    expect(resolveSectionReorder(ids, "s3", "s1")).toEqual([
+      DEFAULT_SECTION_ID,
+      "s3",
+      "s1",
+      "s2",
+    ]);
+  });
+
+  it("always emits the default Section first, wherever it sits in the input", () => {
+    expect(resolveSectionReorder(["s1", DEFAULT_SECTION_ID, "s2"], "s1", "s2")).toEqual([
+      DEFAULT_SECTION_ID,
+      "s2",
+      "s1",
+    ]);
+  });
+
+  it("is undefined when dropped back on itself", () => {
+    expect(resolveSectionReorder(ids, "s2", "s2")).toBeUndefined();
+  });
+
+  it("is undefined when the default Section is the drag endpoint", () => {
+    expect(resolveSectionReorder(ids, DEFAULT_SECTION_ID, "s2")).toBeUndefined();
+    expect(resolveSectionReorder(ids, "s2", DEFAULT_SECTION_ID)).toBeUndefined();
+  });
+
+  it("is undefined when either id is unknown", () => {
+    expect(resolveSectionReorder(ids, "nonexistent", "s2")).toBeUndefined();
+    expect(resolveSectionReorder(ids, "s2", "nonexistent")).toBeUndefined();
+  });
+});
+
+describe("sectionSortableId / sectionIdFromSortableId", () => {
+  it("round-trips a Section id through the sortable id", () => {
+    expect(sectionIdFromSortableId(sectionSortableId("s2"))).toBe("s2");
+  });
+
+  it("produces an id distinct from the Section's own container id and its header droppable id", () => {
+    expect(sectionSortableId("s2")).not.toBe("s2");
+    expect(sectionSortableId("s2")).not.toBe(sectionHeaderDroppableId("s2"));
+  });
+
+  it("is undefined for an id that isn't a sortable id", () => {
+    expect(sectionIdFromSortableId("s2")).toBeUndefined();
+    expect(sectionIdFromSortableId(sectionHeaderDroppableId("s2"))).toBeUndefined();
   });
 });
 

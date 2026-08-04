@@ -21,13 +21,19 @@ import {
   useSensor,
   useSensors,
   type CollisionDetection,
+  type DragCancelEvent,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { useNewtab } from "./newtab-provider";
 import { GridSection } from "./grid-section";
 import { GridTileGhost } from "./grid-tile";
+import { HiddenDefaultNotice } from "./hidden-default-notice";
 import {
   reduceDragSession,
   initialDragSessionState,
@@ -38,9 +44,13 @@ import {
 import {
   resolveDropTarget,
   findShortcutSection,
+  resolveSectionReorder,
   sectionIdFromHeaderDroppableId,
+  sectionIdFromSortableId,
+  sectionSortableId,
   type DropOverTarget,
 } from "@/lib/newtab/grid-drag";
+import { DEFAULT_SECTION_ID } from "@/lib/newtab/defaults";
 import { moveShortcut } from "@/lib/newtab/shortcut-move";
 import type { Config, Shortcut } from "@/lib/newtab/types";
 import {
@@ -67,14 +77,37 @@ type DialogState =
 // springs open (see drag-session.ts's spring-loading rules).
 const SPRING_DELAY_MS = 600;
 
-// "Drop where I'm pointing": prefer the droppable actually under the
-// pointer, falling back to nearest-center for the gaps between tiles.
-// Center-distance alone can never pick a Section header — the header strip
-// spans the grid's full width, so its center is far from a pointer hovering
-// it and some nearby tile always wins.
+function isSectionDrag(active: {
+  data: { current?: { type?: unknown } | undefined };
+}): boolean {
+  return active.data.current?.type === "section";
+}
+
+// Two drag types share this DndContext, and each must only ever collide
+// with its own droppables: a Section drag sees just the named Sections'
+// sortable wrappers (whose rects contain every tile — they'd shadow tile
+// drops otherwise), and a tile drag sees everything but those wrappers.
+//
+// Tile drags keep "drop where I'm pointing": prefer the droppable actually
+// under the pointer, falling back to nearest-center for the gaps between
+// tiles. Center-distance alone can never pick a Section header — the header
+// strip spans the grid's full width, so its center is far from a pointer
+// hovering it and some nearby tile always wins. Section drags are a plain
+// vertical list, where nearest-center is exactly right.
 const collisionDetection: CollisionDetection = (args) => {
-  const withinPointer = pointerWithin(args);
-  return withinPointer.length > 0 ? withinPointer : closestCenter(args);
+  const sectionDrag = isSectionDrag(args.active);
+  const filtered = {
+    ...args,
+    droppableContainers: args.droppableContainers.filter((container) => {
+      const sectionId = sectionIdFromSortableId(String(container.id));
+      return sectionDrag
+        ? sectionId !== undefined && sectionId !== DEFAULT_SECTION_ID
+        : sectionId === undefined;
+    }),
+  };
+  if (sectionDrag) return closestCenter(filtered);
+  const withinPointer = pointerWithin(filtered);
+  return withinPointer.length > 0 ? withinPointer : closestCenter(filtered);
 };
 
 function overTarget(
@@ -196,6 +229,7 @@ export function Grid() {
   }
 
   function handleDragStart(event: DragStartEvent) {
+    if (isSectionDrag(event.active)) return;
     clearSpringTimer();
     const activeId = String(event.active.id);
     const source = findShortcutSection(state.config, activeId);
@@ -223,6 +257,9 @@ export function Grid() {
   // which re-measures rects, which changes `over`, which re-renders — an
   // oscillation that both lags and lands drops one slot off.
   function handleDragOver(event: DragOverEvent) {
+    // Section drags need no over-tracking: the sortable strategy slides the
+    // siblings visually, and the final order is resolved once, at drop.
+    if (isSectionDrag(event.active)) return;
     const overId = event.over ? String(event.over.id) : undefined;
     const headerSectionId = overId
       ? sectionIdFromHeaderDroppableId(overId)
@@ -266,6 +303,21 @@ export function Grid() {
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    if (isSectionDrag(event.active)) {
+      suppressNextClick();
+      const activeSectionId = sectionIdFromSortableId(String(event.active.id));
+      const overSectionId = event.over
+        ? sectionIdFromSortableId(String(event.over.id))
+        : undefined;
+      if (!activeSectionId || !overSectionId) return;
+      const ordered = resolveSectionReorder(
+        state.config.sections.map((s) => s.id),
+        activeSectionId,
+        overSectionId
+      );
+      if (ordered) startTransition(() => actions.reorderSections(ordered));
+      return;
+    }
     clearSpringTimer();
     suppressNextClick();
     setActiveShortcut(undefined);
@@ -293,7 +345,11 @@ export function Grid() {
     );
   }
 
-  function handleDragCancel() {
+  function handleDragCancel(event: DragCancelEvent) {
+    if (isSectionDrag(event.active)) {
+      suppressNextClick();
+      return;
+    }
     clearSpringTimer();
     suppressNextClick();
     setActiveShortcut(undefined);
@@ -324,6 +380,21 @@ export function Grid() {
   const pending = session.phase === "pendingConfirmation" ? session : undefined;
   const sprungSectionIds = springExpandedSectionIds(session);
 
+  const namedSections = previewConfig.sections.filter(
+    (s) => s.id !== DEFAULT_SECTION_ID
+  );
+  // With a single named Section there's nothing to swap with — the handle
+  // still renders (grayed out) but never activates a drag.
+  const sectionDragDisabled = namedSections.length < 2;
+
+  // Hiding the default Section is display-only: it stays in the Config
+  // untouched, it just doesn't render — no tiles, no droppables, no add
+  // affordance.
+  const showDefault = state.preferences.showDefaultSection;
+  const visibleSections = showDefault
+    ? previewConfig.sections
+    : namedSections;
+
   return (
     <div className="mx-auto max-w-5xl px-8 py-12">
       <DndContext
@@ -345,16 +416,24 @@ export function Grid() {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        {previewConfig.sections.map((section) => (
-          <GridSection
-            key={section.id}
-            section={section}
-            springExpanded={sprungSectionIds.includes(section.id)}
-            onOpenTileDialog={({ sectionId, editingId }) =>
-              setDialog({ open: true, sectionId, editingId })
-            }
-          />
-        ))}
+        <SortableContext
+          items={namedSections.map((s) => sectionSortableId(s.id))}
+          strategy={verticalListSortingStrategy}
+        >
+          {visibleSections.map((section) => (
+            <GridSection
+              key={section.id}
+              section={section}
+              springExpanded={sprungSectionIds.includes(section.id)}
+              sectionDragDisabled={sectionDragDisabled}
+              onOpenTileDialog={({ sectionId, editingId }) =>
+                setDialog({ open: true, sectionId, editingId })
+              }
+            />
+          ))}
+        </SortableContext>
+
+        {!showDefault && namedSections.length === 0 && <HiddenDefaultNotice />}
 
         {createPortal(
           // Portaled to <body> so the ghost escapes the grid's stacking

@@ -6,6 +6,7 @@
 // an insertion target out.
 
 import type { Config } from "./types";
+import { DEFAULT_SECTION_ID } from "./defaults";
 
 /**
  * Resolves the insertion index for reordering `activeId` to land where
@@ -111,6 +112,56 @@ export function resolveDropTarget(
     sectionId: overSectionId,
     index: crossSectionDropIndex(targetIds, over.id),
   };
+}
+
+/**
+ * Resolves a Section drag-end to the full ordered id list to hand to
+ * `reorderSections`: `activeId` lands where `overId` currently sits among
+ * the named Sections, and the default Section is always emitted first.
+ *
+ * Returns `undefined` (a no-op — caller should skip the write) when:
+ * - `activeId` and `overId` are the same (dropped back on itself),
+ * - either id is the default Section (it's pinned, never a drag endpoint), or
+ * - either id isn't present in `sectionIds`.
+ */
+export function resolveSectionReorder(
+  sectionIds: string[],
+  activeId: string,
+  overId: string
+): string[] | undefined {
+  if (activeId === overId) return undefined;
+  if (activeId === DEFAULT_SECTION_ID || overId === DEFAULT_SECTION_ID)
+    return undefined;
+
+  const named = sectionIds.filter((id) => id !== DEFAULT_SECTION_ID);
+  const from = named.indexOf(activeId);
+  const to = named.indexOf(overId);
+  if (from === -1 || to === -1) return undefined;
+
+  named.splice(from, 1);
+  named.splice(to, 0, activeId);
+  return [DEFAULT_SECTION_ID, ...named];
+}
+
+const SECTION_SORTABLE_PREFIX = "section-sortable:";
+
+/**
+ * The dnd-kit sortable id for dragging a whole Section by its handle.
+ * Namespaced away from the Section's own id, which is already taken by its
+ * tile-container droppable — two droppables must never share an id.
+ */
+export function sectionSortableId(sectionId: string): string {
+  return `${SECTION_SORTABLE_PREFIX}${sectionId}`;
+}
+
+/**
+ * Recovers the Section id from a sortable id produced by
+ * `sectionSortableId`. `undefined` for any other id.
+ */
+export function sectionIdFromSortableId(id: string): string | undefined {
+  return id.startsWith(SECTION_SORTABLE_PREFIX)
+    ? id.slice(SECTION_SORTABLE_PREFIX.length)
+    : undefined;
 }
 
 const SECTION_HEADER_DROPPABLE_PREFIX = "section-header:";

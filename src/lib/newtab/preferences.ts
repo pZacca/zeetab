@@ -9,16 +9,23 @@
 // and (unlike Config) a malformed value falls back safely without a
 // corrupted-backup step — Preferences are non-critical device-local UI
 // state, not user data worth preserving for recovery.
+//
+// Reads sanitize per field: a stored value written before a Preference
+// existed (or with one field corrupted) keeps every valid field and fills
+// the rest from defaults, so adding a Preference never resets the others.
 
 export type Preferences = {
   /** Confirm before committing a cross-Section drag-and-drop. */
   confirmCrossSectionMove: boolean;
+  /** Render the default Section in the grid. Display-only: hiding it never
+   * moves or deletes the Shortcuts inside. */
+  showDefaultSection: boolean;
 };
 
 export const PREFERENCES_STORAGE_KEY = "zacca.newtab.preferences.v1";
 
 export function defaultPreferences(): Preferences {
-  return { confirmCrossSectionMove: true };
+  return { confirmCrossSectionMove: true, showDefaultSection: true };
 }
 
 export function readPreferences(): Preferences {
@@ -38,8 +45,21 @@ export function readPreferences(): Preferences {
     return defaultPreferences();
   }
 
-  if (!isValidPreferences(parsed)) return defaultPreferences();
-  return { confirmCrossSectionMove: parsed.confirmCrossSectionMove };
+  if (typeof parsed !== "object" || parsed === null)
+    return defaultPreferences();
+
+  const defaults = defaultPreferences();
+  const stored = parsed as Record<string, unknown>;
+  return {
+    confirmCrossSectionMove: booleanField(
+      stored.confirmCrossSectionMove,
+      defaults.confirmCrossSectionMove
+    ),
+    showDefaultSection: booleanField(
+      stored.showDefaultSection,
+      defaults.showDefaultSection
+    ),
+  };
 }
 
 export function writePreferences(preferences: Preferences): void {
@@ -59,12 +79,12 @@ export function setConfirmCrossSectionMove(value: boolean): Preferences {
   return next;
 }
 
-function isValidPreferences(value: unknown): value is Preferences {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "confirmCrossSectionMove" in value &&
-    typeof (value as { confirmCrossSectionMove: unknown })
-      .confirmCrossSectionMove === "boolean"
-  );
+export function setShowDefaultSection(value: boolean): Preferences {
+  const next = { ...readPreferences(), showDefaultSection: value };
+  writePreferences(next);
+  return next;
+}
+
+function booleanField(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
 }

@@ -21,6 +21,7 @@ import { moveShortcut as moveShortcutInConfig } from "@/lib/newtab/shortcut-move
 import {
   readPreferences,
   setConfirmCrossSectionMove as setConfirmCrossSectionMoveInStorage,
+  setShowDefaultSection as setShowDefaultSectionInStorage,
   type Preferences,
 } from "@/lib/newtab/preferences";
 
@@ -44,6 +45,7 @@ export type Actions = {
   reset: () => void;
 
   setConfirmCrossSectionMove: (value: boolean) => void;
+  setShowDefaultSection: (value: boolean) => void;
 };
 
 export type Meta = {
@@ -230,6 +232,9 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
 
       setConfirmCrossSectionMove: (value) =>
         setPreferences(setConfirmCrossSectionMoveInStorage(value)),
+
+      setShowDefaultSection: (value) =>
+        setPreferences(setShowDefaultSectionInStorage(value)),
     }),
     [applyWrite, config]
   );

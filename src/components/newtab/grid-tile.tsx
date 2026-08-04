@@ -61,6 +61,12 @@ function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
       actions.moveShortcut(shortcut.id, { sectionId: targetId }),
   };
 
+  // A hidden default Section is never offered as a move target — a Shortcut
+  // sent there would vanish from view until the Preference is re-enabled.
+  const menuSections = state.preferences.showDefaultSection
+    ? state.config.sections
+    : state.config.sections.filter((s) => s.name !== null);
+
   const itemBase =
     "font-ibm-plex-mono text-xs lowercase tracking-wide text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100";
   const destClass =
@@ -186,7 +192,7 @@ function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
         >
           {tileMenuItems({
             shortcut,
-            sections: state.config.sections,
+            sections: menuSections,
             currentSectionId: sectionId,
             actions: commonActions,
             components: dropdownComponents,
@@ -202,7 +208,7 @@ function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
       <ContextMenuContent className="border-border/40 bg-secondary">
         {tileMenuItems({
           shortcut,
-          sections: state.config.sections,
+          sections: menuSections,
           currentSectionId: sectionId,
           actions: commonActions,
           components: contextComponents,
