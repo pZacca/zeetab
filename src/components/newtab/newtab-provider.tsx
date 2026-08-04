@@ -17,6 +17,7 @@ import {
   serializeExport,
   exportFilename,
 } from "@/lib/newtab/import-export";
+import { moveShortcut as moveShortcutInConfig } from "@/lib/newtab/shortcut-move";
 
 export type Actions = {
   addShortcut: (sectionId: string, data: Omit<Shortcut, "id">) => void;
@@ -126,31 +127,7 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
         })),
 
       moveShortcut: (id, to) =>
-        applyWrite((prev) => {
-          let moving: Shortcut | undefined;
-          const detached = prev.sections.map((s) => {
-            const found = s.shortcuts.find((t) => t.id === id);
-            if (!found) return s;
-            moving = found;
-            return {
-              ...s,
-              shortcuts: s.shortcuts.filter((t) => t.id !== id),
-            };
-          });
-          if (!moving) return prev;
-          const movingShortcut: Shortcut = moving;
-          return {
-            ...prev,
-            sections: detached.map((s) => {
-              if (s.id !== to.sectionId) return s;
-              const insert =
-                typeof to.index === "number" ? to.index : s.shortcuts.length;
-              const next = [...s.shortcuts];
-              next.splice(insert, 0, movingShortcut);
-              return { ...s, shortcuts: next };
-            }),
-          };
-        }),
+        applyWrite((prev) => moveShortcutInConfig(prev, id, to)),
 
       addSection: (name) => {
         const id = crypto.randomUUID();
