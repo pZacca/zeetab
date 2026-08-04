@@ -4,6 +4,8 @@ import {
   crossSectionDropIndex,
   findShortcutSection,
   resolveDropTarget,
+  sectionHeaderDroppableId,
+  sectionIdFromHeaderDroppableId,
 } from "./grid-drag";
 import { emptyConfig, DEFAULT_SECTION_ID } from "./defaults";
 import type { Config, Shortcut } from "./types";
@@ -141,5 +143,22 @@ describe("resolveDropTarget", () => {
     expect(
       resolveDropTarget(cfg, "A", { id: "floating-overlay-id" })
     ).toBeUndefined();
+  });
+});
+
+describe("sectionHeaderDroppableId / sectionIdFromHeaderDroppableId", () => {
+  it("round-trips a Section id through the header droppable id", () => {
+    expect(sectionIdFromHeaderDroppableId(sectionHeaderDroppableId("s2"))).toBe(
+      "s2"
+    );
+  });
+
+  it("produces an id distinct from the Section's own id (never collides with a container/Shortcut id)", () => {
+    expect(sectionHeaderDroppableId("s2")).not.toBe("s2");
+  });
+
+  it("is undefined for an id that isn't a header droppable id", () => {
+    expect(sectionIdFromHeaderDroppableId("s2")).toBeUndefined();
+    expect(sectionIdFromHeaderDroppableId("some-shortcut-id")).toBeUndefined();
   });
 });

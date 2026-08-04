@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, lazy, startTransition, useState } from "react";
+import { Suspense, lazy, startTransition, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -17,12 +17,14 @@ import { GridSection } from "./grid-section";
 import {
   reduceDragSession,
   initialDragSessionState,
+  springExpandedSectionIds,
   type DragSessionEvent,
   type DragSessionState,
 } from "@/lib/newtab/drag-session";
 import {
   resolveDropTarget,
   findShortcutSection,
+  sectionIdFromHeaderDroppableId,
   type DropOverTarget,
 } from "@/lib/newtab/grid-drag";
 import { moveShortcut } from "@/lib/newtab/shortcut-move";
@@ -47,6 +49,10 @@ type DialogState =
   | { open: false }
   | { open: true; sectionId: string; editingId?: string | undefined };
 
+// How long a dragged tile must hover a collapsed Section's header before it
+// springs open (see drag-session.ts's spring-loading rules).
+const SPRING_DELAY_MS = 600;
+
 function overTarget(
   over: { id: string | number; data: { current?: unknown } } | null
 ): DropOverTarget | undefined {
@@ -68,6 +74,12 @@ export function Grid() {
   const [session, setSession] = useState<DragSessionState>(
     initialDragSessionState
   );
+  // The spring-loading clock: real time, owned here (not the pure
+  // reducer). Cleared whenever the hovered header changes or the drag ends.
+  const springTimer = useRef<{
+    sectionId: string;
+    timeoutId: ReturnType<typeof globalThis.setTimeout>;
+  } | null>(null);
   const [dontAskAgain, setDontAskAgain] = useState(false);
 
   const sensors = useSensors(
@@ -99,14 +111,37 @@ export function Grid() {
     }
     setSession(next);
     if (commit) {
-      const { shortcutId, sectionId, index } = commit;
-      startTransition(() =>
-        actions.moveShortcut(shortcutId, { sectionId, index })
-      );
+      const { shortcutId, sectionId, index, expandSection } = commit;
+      startTransition(() => {
+        actions.moveShortcut(shortcutId, { sectionId, index });
+        // Only a confirmed drop into a Section that actually sprung open
+        // during this drag persists the expansion — hover alone never does.
+        if (expandSection) actions.toggleSectionCollapse(sectionId);
+      });
     }
   }
 
+  function clearSpringTimer() {
+    if (springTimer.current) {
+      globalThis.clearTimeout(springTimer.current.timeoutId);
+      // eslint-disable-next-line unicorn/no-null
+      springTimer.current = null;
+    }
+  }
+
+  function scheduleSpringTimer(sectionId: string) {
+    if (springTimer.current?.sectionId === sectionId) return;
+    clearSpringTimer();
+    const timeoutId = globalThis.setTimeout(() => {
+      // eslint-disable-next-line unicorn/no-null
+      springTimer.current = null;
+      send([{ type: "springTimerElapsed", sectionId }]);
+    }, SPRING_DELAY_MS);
+    springTimer.current = { sectionId, timeoutId };
+  }
+
   function handleDragStart(event: DragStartEvent) {
+    clearSpringTimer();
     const activeId = String(event.active.id);
     const source = findShortcutSection(state.config, activeId);
     if (!source) return;
@@ -122,6 +157,20 @@ export function Grid() {
 
   function handleDragOver(event: DragOverEvent) {
     const activeId = String(event.active.id);
+    const overId = event.over ? String(event.over.id) : undefined;
+    const headerSectionId = overId
+      ? sectionIdFromHeaderDroppableId(overId)
+      : undefined;
+
+    if (headerSectionId) {
+      // Hovering a collapsed Section's header: track it and start (or keep)
+      // its spring-open clock. No live content preview into it yet.
+      scheduleSpringTimer(headerSectionId);
+      send([{ type: "dragOverSectionHeader", sectionId: headerSectionId }]);
+      return;
+    }
+
+    clearSpringTimer();
     const over = overTarget(event.over);
     if (!over) return;
     const target = resolveDropTarget(state.config, activeId, over);
@@ -130,6 +179,7 @@ export function Grid() {
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    clearSpringTimer();
     const activeId = String(event.active.id);
     const over = overTarget(event.over);
     const target = over ? resolveDropTarget(state.config, activeId, over) : undefined;
@@ -144,6 +194,7 @@ export function Grid() {
   }
 
   function handleDragCancel() {
+    clearSpringTimer();
     send([{ type: "dragCancel" }]);
   }
 
@@ -160,6 +211,7 @@ export function Grid() {
         });
 
   const pending = session.phase === "pendingConfirmation" ? session : undefined;
+  const sprungSectionIds = springExpandedSectionIds(session);
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-12">
@@ -175,6 +227,7 @@ export function Grid() {
           <GridSection
             key={section.id}
             section={section}
+            springExpanded={sprungSectionIds.includes(section.id)}
             onOpenTileDialog={({ sectionId, editingId }) =>
               setDialog({ open: true, sectionId, editingId })
             }

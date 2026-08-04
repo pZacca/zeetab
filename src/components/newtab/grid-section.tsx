@@ -5,6 +5,7 @@ import { ChevronDown, MoreVertical } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import type { Section } from "@/lib/newtab/types";
+import { sectionHeaderDroppableId } from "@/lib/newtab/grid-drag";
 import { useNewtab } from "./newtab-provider";
 import { GridTile } from "./grid-tile";
 import { GridAddTile } from "./grid-add-tile";
@@ -29,21 +30,39 @@ import { Input } from "@/components/ui/input";
 
 type Props = {
   section: Section;
+  /**
+   * True while the grid's drag session has this (collapsed) Section
+   * spring-expanded for the current drag — transient, never persisted
+   * unless the caller commits a drop into it. See drag-session.ts.
+   */
+  springExpanded: boolean;
   onOpenTileDialog: (args: {
     sectionId: string;
     editingId?: string | undefined;
   }) => void;
 };
 
-export function GridSection({ section, onOpenTileDialog }: Props) {
+export function GridSection({
+  section,
+  springExpanded,
+  onOpenTileDialog,
+}: Props) {
   const { actions } = useNewtab();
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(section.name ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const isDefault = section.name === null;
+  // Spring-loading: a collapsed Section renders its content anyway once a
+  // dragged tile has hovered its header long enough. The persisted
+  // `collapsed` flag itself never changes from this alone.
+  const bodyVisible = !section.collapsed || springExpanded;
 
   const shortcutIds = section.shortcuts.map((s) => s.id);
   const { setNodeRef: setDroppableRef } = useDroppable({ id: section.id });
+  const { setNodeRef: setHeaderDroppableRef } = useDroppable({
+    id: sectionHeaderDroppableId(section.id),
+    data: { sectionId: section.id },
+  });
 
   function commitRename() {
     const trimmed = draft.trim();
@@ -60,7 +79,10 @@ export function GridSection({ section, onOpenTileDialog }: Props) {
   return (
     <section className="mb-10">
       {!isDefault && (
-        <header className="mb-3 flex items-center gap-2">
+        <header
+          ref={bodyVisible ? undefined : setHeaderDroppableRef}
+          className="mb-3 flex items-center gap-2"
+        >
           <button
             type="button"
             onClick={() => actions.toggleSectionCollapse(section.id)}
@@ -134,7 +156,7 @@ export function GridSection({ section, onOpenTileDialog }: Props) {
         </header>
       )}
 
-      {!section.collapsed && (
+      {bodyVisible && (
         <SortableContext items={shortcutIds} strategy={rectSortingStrategy}>
           <div
             ref={setDroppableRef}
