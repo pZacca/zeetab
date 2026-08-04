@@ -39,7 +39,7 @@ function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
   const { state, actions } = useNewtab();
   const [open, setOpen] = useState(false);
   const { setNodeRef, listeners, transform, transition, isDragging } =
-    useSortable({ id: shortcut.id });
+    useSortable({ id: shortcut.id, data: { sectionId } });
   const dragStyle = {
     transform: CSS.Transform.toString(transform),
     transition,

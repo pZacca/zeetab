@@ -1,19 +1,10 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { useState } from "react";
 import { ChevronDown, MoreVertical } from "lucide-react";
-import {
-  closestCenter,
-  DndContext,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import type { Section } from "@/lib/newtab/types";
-import { reorderTargetIndex } from "@/lib/newtab/grid-drag";
 import { useNewtab } from "./newtab-provider";
 import { GridTile } from "./grid-tile";
 import { GridAddTile } from "./grid-add-tile";
@@ -51,29 +42,8 @@ export function GridSection({ section, onOpenTileDialog }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const isDefault = section.name === null;
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    // Long-press activation: a quick tap still opens the Shortcut, and
-    // ordinary swipes aren't hijacked into a drag. The drag surface itself
-    // sets `touch-action: none` (see GridTile) so real touch devices match
-    // this emulation instead of the browser starting its own scroll/pan
-    // gesture before the delay elapses.
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 250, tolerance: 8 },
-    })
-  );
   const shortcutIds = section.shortcuts.map((s) => s.id);
-
-  function onDragEnd(e: DragEndEvent) {
-    if (!e.over) return;
-    const activeId = String(e.active.id);
-    const overId = String(e.over.id);
-    const target = reorderTargetIndex(shortcutIds, activeId, overId);
-    if (target === undefined) return;
-    startTransition(() =>
-      actions.moveShortcut(activeId, { sectionId: section.id, index: target })
-    );
-  }
+  const { setNodeRef: setDroppableRef } = useDroppable({ id: section.id });
 
   function commitRename() {
     const trimmed = draft.trim();
@@ -165,35 +135,30 @@ export function GridSection({ section, onOpenTileDialog }: Props) {
       )}
 
       {!section.collapsed && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={shortcutIds} strategy={rectSortingStrategy}>
-            <div
-              className="grid gap-4"
-              style={{
-                gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
-                contentVisibility: "auto",
-              }}
-            >
-              {section.shortcuts.map((s) => (
-                <GridTile
-                  key={s.id}
-                  shortcut={s}
-                  sectionId={section.id}
-                  onEdit={(id) =>
-                    onOpenTileDialog({ sectionId: section.id, editingId: id })
-                  }
-                />
-              ))}
-              <GridAddTile
-                onClick={() => onOpenTileDialog({ sectionId: section.id })}
+        <SortableContext items={shortcutIds} strategy={rectSortingStrategy}>
+          <div
+            ref={setDroppableRef}
+            className="grid gap-4"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+              contentVisibility: "auto",
+            }}
+          >
+            {section.shortcuts.map((s) => (
+              <GridTile
+                key={s.id}
+                shortcut={s}
+                sectionId={section.id}
+                onEdit={(id) =>
+                  onOpenTileDialog({ sectionId: section.id, editingId: id })
+                }
               />
-            </div>
-          </SortableContext>
-        </DndContext>
+            ))}
+            <GridAddTile
+              onClick={() => onOpenTileDialog({ sectionId: section.id })}
+            />
+          </div>
+        </SortableContext>
       )}
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
