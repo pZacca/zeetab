@@ -44,6 +44,11 @@ function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
+    // The drag surface must opt out of native touch scrolling itself so a
+    // long-press can pick up the tile on real touch devices; the grid
+    // background outside tiles is left alone, so ordinary swipes still
+    // scroll the page.
+    touchAction: "none" as const,
   };
 
   const commonActions = {

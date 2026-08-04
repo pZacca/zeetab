@@ -5,6 +5,7 @@ import {
   closestCenter,
   DndContext,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -68,7 +69,15 @@ export function Grid() {
   );
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    // Long-press activation: a quick tap still opens the Shortcut, and
+    // ordinary swipes aren't hijacked into a drag. The drag surface itself
+    // sets `touch-action: none` (see GridTile) so real touch devices match
+    // this emulation instead of the browser starting its own scroll/pan
+    // gesture before the delay elapses.
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 8 },
+    })
   );
 
   // Runs a sequence of drag-session events against the current session in
