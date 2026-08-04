@@ -41,9 +41,12 @@ function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
   const { setNodeRef, listeners, transform, transition, isDragging } =
     useSortable({ id: shortcut.id, data: { sectionId } });
   const dragStyle = {
-    transform: CSS.Transform.toString(transform),
+    // While dragging, the moving visual is the DragOverlay ghost; the tile
+    // itself stays put in its preview slot as a dimmed placeholder. Applying
+    // the pointer-follow transform here too would move it twice.
+    transform: isDragging ? undefined : CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.3 : 1,
     // The drag surface must opt out of native touch scrolling itself so a
     // long-press can pick up the tile on real touch devices; the grid
     // background outside tiles is left alone, so ordinary swipes still
@@ -206,6 +209,29 @@ function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
         })}
       </ContextMenuContent>
     </ContextMenu>
+  );
+}
+
+/**
+ * The presentational clone rendered inside the DragOverlay while a tile is
+ * being dragged — follows the pointer above everything, so it carries no
+ * menus, links, or sortable wiring.
+ */
+export function GridTileGhost({ shortcut }: { shortcut: Shortcut }) {
+  const visibleLabel = shortcut.label || safeHostname(shortcut.url);
+  return (
+    <div className="flex w-[96px] cursor-grabbing flex-col items-center gap-2 rounded-lg bg-zinc-900/90 p-2 shadow-xl ring-1 ring-zinc-700/80">
+      <Favicon
+        key={shortcut.url}
+        icon={shortcut.icon}
+        url={shortcut.url}
+        label={shortcut.label}
+        size={64}
+      />
+      <span className="line-clamp-1 w-full text-center text-xs text-zinc-100">
+        {visibleLabel}
+      </span>
+    </div>
   );
 }
 

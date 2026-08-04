@@ -8,9 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   closestCenter,
   DndContext,
+  DragOverlay,
   pointerWithin,
   PointerSensor,
   TouchSensor,
@@ -23,6 +25,7 @@ import {
 } from "@dnd-kit/core";
 import { useNewtab } from "./newtab-provider";
 import { GridSection } from "./grid-section";
+import { GridTileGhost } from "./grid-tile";
 import {
   reduceDragSession,
   initialDragSessionState,
@@ -37,7 +40,7 @@ import {
   type DropOverTarget,
 } from "@/lib/newtab/grid-drag";
 import { moveShortcut } from "@/lib/newtab/shortcut-move";
-import type { Config } from "@/lib/newtab/types";
+import type { Config, Shortcut } from "@/lib/newtab/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -108,6 +111,10 @@ export function Grid() {
     timeoutId: ReturnType<typeof globalThis.setTimeout>;
   } | null>(null);
   const [dontAskAgain, setDontAskAgain] = useState(false);
+  // The Shortcut whose ghost the DragOverlay is showing; set for the whole
+  // pointer-down-to-drop window so the ghost follows the pointer anywhere
+  // on screen, above every stacking context.
+  const [activeShortcut, setActiveShortcut] = useState<Shortcut | undefined>();
 
   // The post-drag click guard has to be a NATIVE window-capture listener:
   // dnd-kit suppresses the click with stopPropagation in a document-capture
@@ -190,6 +197,11 @@ export function Grid() {
     const activeId = String(event.active.id);
     const source = findShortcutSection(state.config, activeId);
     if (!source) return;
+    setActiveShortcut(
+      state.config.sections
+        .flatMap((s) => s.shortcuts)
+        .find((t) => t.id === activeId)
+    );
     send([
       {
         type: "dragStart",
@@ -242,6 +254,7 @@ export function Grid() {
   function handleDragEnd(event: DragEndEvent) {
     clearSpringTimer();
     suppressNextClick();
+    setActiveShortcut(undefined);
     if (!event.over) {
       send([{ type: "dragCancel" }]);
       return;
@@ -256,6 +269,7 @@ export function Grid() {
   function handleDragCancel() {
     clearSpringTimer();
     suppressNextClick();
+    setActiveShortcut(undefined);
     send([{ type: "dragCancel" }]);
   }
 
@@ -303,6 +317,15 @@ export function Grid() {
             }
           />
         ))}
+
+        {createPortal(
+          // Portaled to <body> so the ghost escapes the grid's stacking
+          // contexts — it must never slide behind headers or page padding.
+          <DragOverlay zIndex={60}>
+            {activeShortcut ? <GridTileGhost shortcut={activeShortcut} /> : undefined}
+          </DragOverlay>,
+          document.body
+        )}
       </DndContext>
 
       {dialog.open && (
