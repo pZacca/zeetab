@@ -143,6 +143,10 @@ function GridTileBase({ shortcut, sectionId, onEdit }: Props) {
       ref={setNodeRef}
       href={shortcut.url}
       aria-label={visibleLabel}
+      // Links are natively draggable; letting the browser's own link-drag
+      // race the dnd-kit gesture ends with the tab NAVIGATING to the href
+      // when the unhandled native drop lands back on the page.
+      draggable={false}
       style={dragStyle}
       {...listeners}
       className="group relative flex w-[96px] flex-col items-center gap-2 rounded-lg p-2 outline-none hover:bg-zinc-900/60 focus-visible:ring-2 focus-visible:ring-primary"
