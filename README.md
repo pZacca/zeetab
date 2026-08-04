@@ -4,8 +4,8 @@ A minimal new tab with shortcut sections — for Chrome and Firefox.
 
 **Try it without installing:** https://zeetab.zacca.dev
 
-<!-- store badges: filled in after review approval -->
-[Add to Chrome](#) · [Add to Firefox](#)
+<!-- Firefox badge: filled in after AMO listing URL is confirmed -->
+[Add to Chrome](https://chromewebstore.google.com/detail/okigemonkljchelokiilmfhdapecckel) · [Add to Firefox](#)
 
 ## What it does
 
