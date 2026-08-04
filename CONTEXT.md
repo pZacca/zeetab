@@ -41,3 +41,8 @@ is done explicitly via import/export.
 ### Import / Export
 The explicit, file-based way a user moves a Config between browsers,
 machines, or between the Demo and the Extension.
+
+### Preference
+A device-local setting that shapes how the UI behaves (e.g. whether moving a
+Shortcut between Sections asks for confirmation). Not part of the Config: it
+never travels via Import / Export.
