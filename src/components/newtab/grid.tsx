@@ -13,6 +13,8 @@ import {
   closestCenter,
   DndContext,
   DragOverlay,
+  getClientRect,
+  MeasuringStrategy,
   pointerWithin,
   PointerSensor,
   TouchSensor,
@@ -212,8 +214,14 @@ export function Grid() {
     ]);
   }
 
+  // Mid-drag, state changes ONLY when the dragged Shortcut crosses into a
+  // different Section. Within a Section, the "gap opens under the pointer"
+  // effect is dnd-kit's sortable transforms — purely visual, no re-render —
+  // and the exact index is resolved once, at drop. Re-rendering the real
+  // order on every over-change instead makes tiles move under the pointer,
+  // which re-measures rects, which changes `over`, which re-renders — an
+  // oscillation that both lags and lands drops one slot off.
   function handleDragOver(event: DragOverEvent) {
-    const activeId = String(event.active.id);
     const overId = event.over ? String(event.over.id) : undefined;
     const headerSectionId = overId
       ? sectionIdFromHeaderDroppableId(overId)
@@ -230,18 +238,23 @@ export function Grid() {
     clearSpringTimer();
     const over = overTarget(event.over);
     if (!over) return;
-    // Resolve against what the user is LOOKING at — the live preview — not
-    // the committed config. dnd-kit's `over` comes from the rendered DOM,
-    // where earlier dragOvers have already moved tiles; resolving that pair
-    // against the un-previewed config computes stale indexes.
-    const target = resolveDropTarget(currentPreview(), activeId, over);
+    const s = sessionRef.current;
+    if (s.phase !== "dragging") return;
+    const preview = currentPreview();
+    const overSection =
+      preview.sections.find((sec) => sec.id === over.id)?.id ?? over.sectionId;
+    if (!overSection || overSection === s.overSectionId) return;
+    // Crossing into another Section: place the Shortcut at the entry slot
+    // (before the tile under the pointer, or at the end of the container).
+    const target = resolveDropTarget(preview, s.shortcutId, over);
     if (!target) return;
     send([{ type: "dragOver", sectionId: target.sectionId, index: target.index }]);
   }
 
   // The Config as currently rendered: committed state plus the in-flight
-  // drag preview. Reads sessionRef so event handlers see the same picture
-  // the DOM shows, not the render they were created in.
+  // container placement of the dragged Shortcut. Reads sessionRef so event
+  // handlers see the same picture the DOM shows, not the render they were
+  // created in.
   function currentPreview(): Config {
     const s = sessionRef.current;
     if (s.phase !== "dragging") return state.config;
@@ -259,11 +272,24 @@ export function Grid() {
       send([{ type: "dragCancel" }]);
       return;
     }
-    // The live preview really moves tiles in the DOM, so by drop time the
-    // pointer usually sits over the dragged tile itself — re-resolving that
-    // against the un-previewed config would discard the drop. The session
-    // already tracked the last valid target on every dragOver; trust it.
-    send([{ type: "drop" }]);
+    const s = sessionRef.current;
+    if (s.phase !== "dragging") return;
+    // Resolve the exact index once, against the rendered picture. When the
+    // pointer is over the dragged tile's own placeholder (resolves to
+    // nothing), commit its current preview position — that's what the user
+    // is looking at.
+    const over = overTarget(event.over);
+    const target = over
+      ? resolveDropTarget(currentPreview(), s.shortcutId, over)
+      : undefined;
+    send(
+      target
+        ? [
+            { type: "dragOver", sectionId: target.sectionId, index: target.index },
+            { type: "drop" },
+          ]
+        : [{ type: "drop" }]
+    );
   }
 
   function handleDragCancel() {
@@ -302,6 +328,17 @@ export function Grid() {
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        // The live preview moves tiles between slots mid-drag, so droppable
+        // rects must be re-measured (Always), and measured at their LAYOUT
+        // position (ignoreTransform): the slide-into-place transition means
+        // a transformed getBoundingClientRect reads mid-animation positions,
+        // which makes collisions oscillate and land the drop one slot off.
+        measuring={{
+          droppable: {
+            strategy: MeasuringStrategy.Always,
+            measure: (el) => getClientRect(el, { ignoreTransform: true }),
+          },
+        }}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
