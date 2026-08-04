@@ -1,9 +1,30 @@
 name: Deploy demo
 
+# Only paths the demo build/deploy actually depends on trigger a deploy —
+# docs-only commits skip it. If the demo gains a dependency outside this
+# list, add it here, or deploys will silently stop firing for it.
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "demo/**"
+      - "vite.demo.config.ts"
+      - "vercel.json"
+      - "tsconfig.json"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-demo.yml"
   pull_request:
+    paths:
+      - "src/**"
+      - "demo/**"
+      - "vite.demo.config.ts"
+      - "vercel.json"
+      - "tsconfig.json"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-demo.yml"
   workflow_dispatch:
 
 concurrency:

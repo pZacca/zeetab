@@ -24,7 +24,7 @@ npm run lint           # eslint (lint:fix to autofix)
 npm run compile        # tsc --noEmit
 ```
 
-CI (`.github/workflows/ci.yml`) runs lint, compile, test, and all three builds. Pushes to `main` deploy the demo to Vercel (`deploy-demo.yml`).
+CI (`.github/workflows/ci.yml`) runs lint, compile, test, and all three builds. Pushes to `main` and PRs deploy the demo to Vercel (`deploy-demo.yml`) — but only when a path the demo depends on changed; the workflow's `paths` filter lists them. If you make the demo build depend on a new path (a config file, an asset directory), add it to both `paths` lists in `deploy-demo.yml`, or deploys will silently stop firing for that change.
 
 ## Architecture
 
