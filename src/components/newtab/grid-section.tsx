@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown, GripVertical, MoreVertical } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, GripVertical, MoreVertical, Pencil } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -95,39 +95,6 @@ export function GridSection({
     data: { sectionId: section.id },
   });
 
-  // The name is click-to-toggle AND double-click-to-rename: a single click
-  // only toggles after the double-click window has passed, so renaming
-  // never collapses the Section on its first click.
-  const nameClickTimer = useRef<ReturnType<typeof globalThis.setTimeout> | null>(
-    null
-  );
-  useEffect(
-    () => () => {
-      if (nameClickTimer.current)
-        globalThis.clearTimeout(nameClickTimer.current);
-    },
-    []
-  );
-
-  function handleNameClick() {
-    if (nameClickTimer.current) return;
-    nameClickTimer.current = globalThis.setTimeout(() => {
-      // eslint-disable-next-line unicorn/no-null
-      nameClickTimer.current = null;
-      actions.toggleSectionCollapse(section.id);
-    }, 250);
-  }
-
-  function handleNameDoubleClick() {
-    if (nameClickTimer.current) {
-      globalThis.clearTimeout(nameClickTimer.current);
-      // eslint-disable-next-line unicorn/no-null
-      nameClickTimer.current = null;
-    }
-    setDraft(section.name ?? "");
-    setRenaming(true);
-  }
-
   function commitRename() {
     const trimmed = draft.trim();
     if (trimmed && trimmed !== section.name)
@@ -198,13 +165,29 @@ export function GridSection({
               className="h-7 max-w-[240px]"
             />
           ) : (
-            <h2
-              className="cursor-pointer font-ibm-plex-mono text-sm text-zinc-200 select-none hover:text-zinc-100"
-              onClick={handleNameClick}
-              onDoubleClick={handleNameDoubleClick}
-            >
-              {section.name}
-            </h2>
+            <>
+              <h2 className="font-ibm-plex-mono text-sm text-zinc-200">
+                <button
+                  type="button"
+                  onClick={() => actions.toggleSectionCollapse(section.id)}
+                  aria-expanded={!section.collapsed}
+                  className="cursor-pointer transition-colors hover:text-zinc-100"
+                >
+                  {section.name}
+                </button>
+              </h2>
+              <button
+                type="button"
+                aria-label="Rename section"
+                onClick={() => {
+                  setDraft(section.name ?? "");
+                  setRenaming(true);
+                }}
+                className="grid size-6 cursor-pointer place-items-center rounded text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+              >
+                <Pencil className="size-3.5" />
+              </button>
+            </>
           )}
 
           <DropdownMenu>
