@@ -4,7 +4,7 @@ Working notes on where zeetab is headed. Not a promise — an ordering.
 
 ## Releases & distribution
 
-- [ ] **Release workflow** — GitHub Action triggered by `v*` tags: build the
+- [x] **Release workflow** — GitHub Action triggered by `v*` tags: build the
       three zips (Chrome, Firefox, sources) and attach them to a GitHub
       Release with `--generate-notes`. The flow per release becomes:
       `npm version x.y.z` → `git push --follow-tags` → upload the same zips
