@@ -1,9 +1,15 @@
 import { defineConfig } from "wxt";
 import tailwindcss from "@tailwindcss/vite";
+// Type-only: pulls in @wxt-dev/module-react's `react` key augmentation of
+// wxt's InlineConfig.
+import type {} from "@wxt-dev/module-react";
 
 export default defineConfig({
   srcDir: "src",
   modules: ["@wxt-dev/module-react"],
+  react: {
+    vite: { babel: { plugins: ["babel-plugin-react-compiler"] } },
+  },
   vite: () => ({
     plugins: [tailwindcss()],
   }),
