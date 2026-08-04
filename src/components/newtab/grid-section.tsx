@@ -112,7 +112,11 @@ export function GridSection({
       ref={setSortableRef}
       className="mb-10"
       style={{
-        transform: CSS.Transform.toString(sortableTransform),
+        // Translate only, never scale: without a DragOverlay the drag
+        // transform carries dnd-kit's over/active size ratio (meant for an
+        // overlay to morph into the slot), which would squash an expanded
+        // Section passing a collapsed one and stretch the reverse.
+        transform: CSS.Translate.toString(sortableTransform),
         transition: sortableTransition,
         // The dragged Section must paint above the siblings sliding around
         // it; its drag transform already makes it a stacking context.
