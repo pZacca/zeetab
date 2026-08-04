@@ -115,7 +115,32 @@ const collisionDetection: CollisionDetection = (args) => {
   };
   if (sectionDrag) return closestCenter(filtered);
   const withinPointer = pointerWithin(filtered);
-  return withinPointer.length > 0 ? withinPointer : closestCenter(filtered);
+  const first = withinPointer[0];
+  if (first) {
+    // The pointer can sit on a Section's container while over none of its
+    // tiles — the grid gaps and trailing space are part of that element.
+    // A container hit is a no-op for same-Section drops, which would turn
+    // every gap into a dead zone; snap to the Section's nearest tile
+    // instead, so the whole surface targets a real slot.
+    const hit = filtered.droppableContainers.find((c) => c.id === first.id);
+    const hitData = hit?.data.current as { sectionId?: unknown } | undefined;
+    const isSectionContainer =
+      typeof hitData?.sectionId !== "string" &&
+      sectionIdFromHeaderDroppableId(String(first.id)) === undefined;
+    if (isSectionContainer) {
+      const sectionTiles = filtered.droppableContainers.filter((c) => {
+        const d = c.data.current as { sectionId?: unknown } | undefined;
+        return (
+          d?.sectionId === first.id &&
+          sectionIdFromHeaderDroppableId(String(c.id)) === undefined
+        );
+      });
+      if (sectionTiles.length > 0)
+        return closestCenter({ ...args, droppableContainers: sectionTiles });
+    }
+    return withinPointer;
+  }
+  return closestCenter(filtered);
 };
 
 function overTarget(
