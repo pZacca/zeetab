@@ -13,9 +13,9 @@ Artifacts (run `npm run zip && npm run zip:firefox`):
 - **Summary:** A minimal new tab with shortcut sections.
 - **Description:** Replaces your new tab page with a fast, offline grid of
   shortcuts. Group them into collapsible sections, drag & drop to reorder,
-  upload custom icons, and move your config anywhere with JSON
-  import/export. No account, no server, no tracking — everything stays in
-  your browser. Try it first at https://zeetab.zacca.dev.
+  upload custom icons, and move your config — or a single section — anywhere
+  with JSON import/export. No account, no server, no tracking — everything
+  stays in your browser. Try it first at https://zeetab.zacca.dev.
 - **Category:** Productivity / Workflow
 - **Homepage:** https://github.com/pZacca/zeetab
 
@@ -28,13 +28,21 @@ Artifacts (run `npm run zip && npm run zip:firefox`):
 - Data collection: none. State the same in CWS "privacy practices" form and
   AMO's data-collection questionnaire.
 
-## Still needed before submitting
+## Per-release checklist
 
-- [ ] Screenshots: 1280×800 (CWS) — populated grid, settings sheet open,
-      section drag in progress. AMO accepts the same images.
-- [ ] CWS: developer account ($5 one-time, likely already registered).
-- [ ] AMO: add-on ID is `zeetab@zacca.dev` (already in the manifest).
-- [ ] After approval: replace the `#` store links in README.md.
+Both listings are live (CWS `okigemonkljchelokiilmfhdapecckel`, AMO
+`zeetab@zacca.dev` — the ID is in the manifest). For every release:
+
+- [ ] `npm run screenshots` — regenerates `docs/store-assets/*.png`
+      (1280×800, from the demo build). Re-upload only the images whose UI
+      changed; check for letter-tile fallbacks if the network was flaky.
+- [ ] Upload the same version to both stores — CWS cannot downgrade a
+      published version, so a mismatch is permanent until the next release.
+- [ ] If the listing copy above changed, paste it into both stores; the
+      stores don't read this file.
+- [ ] Privacy declarations unchanged (no new permissions, no new network
+      calls) — re-confirm the CWS privacy form and AMO questionnaire only if
+      they were.
 
 ## AMO source-code notes (reviewer instructions)
 
