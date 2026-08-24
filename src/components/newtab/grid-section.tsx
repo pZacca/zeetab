@@ -211,6 +211,12 @@ export function GridSection({
               >
                 rename
               </DropdownMenuItem>
+              <DropdownMenuItem
+                className="font-ibm-plex-mono text-xs lowercase tracking-wide text-zinc-300 focus:bg-zinc-800 focus:text-zinc-100"
+                onSelect={() => actions.exportSection(section.id)}
+              >
+                export section
+              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/40" />
               <DropdownMenuItem
                 className="font-ibm-plex-mono text-xs lowercase tracking-wide text-destructive focus:bg-destructive/10 focus:text-destructive"
