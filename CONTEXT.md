@@ -38,5 +38,7 @@ The Demo and the Extension never share state; moving a Config between them
 is done explicitly via import/export.
 
 ### Import / Export
-The explicit, file-based way a user moves a Config between browsers,
-machines, or between the Demo and the Extension.
+The explicit, file-based way a user moves a Config, or a single Section,
+between browsers, machines, or between the Demo and the Extension. Importing
+a Config replaces everything; importing a Section adds it to the end of the
+existing Config.

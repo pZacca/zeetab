@@ -9,9 +9,11 @@ Working notes on where zeetab is headed. Not a promise — an ordering.
       Release with `--generate-notes`. The flow per release becomes:
       `npm version x.y.z` → `git push --follow-tags` → upload the same zips
       to both stores.
-- [ ] **Version alignment** — next release (0.2.0) ships the same number to
-      both stores, fixing the cosmetic 0.1.0 (CWS) / 0.1.1 (AMO) split from
-      the initial submissions. From then on: one version, two stores, always.
+- [x] **Dual-store availability & version alignment** — version 0.2.0 is live
+      on the [Chrome Web Store](https://chromewebstore.google.com/detail/okigemonkljchelokiilmfhdapecckel)
+      and [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/zeetab/),
+      aligning both stores after the initial cosmetic 0.1.0 (CWS) / 0.1.1
+      (AMO) split. One version, two stores, always.
 - [ ] **Automated store submission** — once the manual cycle has settled:
       AMO via its signing API (`wxt submit`), CWS via the Web Store API.
       Manual until then, deliberately.
