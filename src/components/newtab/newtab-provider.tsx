@@ -10,12 +10,15 @@ import {
   use,
   type ReactNode,
 } from "react";
-import type { Config, Shortcut } from "@/lib/newtab/types";
+import type { Config, Section, Shortcut } from "@/lib/newtab/types";
 import { DEFAULT_SECTION_ID, emptyConfig } from "@/lib/newtab/defaults";
 import { createStore, attachStorageSync } from "@/lib/newtab/store";
 import {
-  serializeExport,
+  appendImportedSection,
   exportFilename,
+  sectionExportFilename,
+  serializeExport,
+  serializeSectionExport,
 } from "@/lib/newtab/import-export";
 import { moveShortcut as moveShortcutInConfig } from "@/lib/newtab/shortcut-move";
 import {
@@ -24,6 +27,18 @@ import {
   setShowDefaultSection as setShowDefaultSectionInStorage,
   type Preferences,
 } from "@/lib/newtab/preferences";
+
+function downloadJson(contents: string, filename: string) {
+  const blob = new Blob([contents], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
 
 export type Actions = {
   addShortcut: (sectionId: string, data: Omit<Shortcut, "id">) => void;
@@ -39,6 +54,8 @@ export type Actions = {
   toggleSectionCollapse: (id: string) => void;
   deleteSection: (id: string) => void;
   reorderSections: (orderedIds: string[]) => void;
+  importSection: (section: Section) => void;
+  exportSection: (sectionId: string) => void;
 
   replaceConfig: (config: Config) => void;
   exportConfig: () => void;
@@ -202,23 +219,26 @@ export function NewtabProvider({ children }: { children: ReactNode }) {
           return { ...prev, sections: [def, ...rest, ...missing] };
         }),
 
+      importSection: (section) =>
+        applyWrite((prev) =>
+          appendImportedSection(prev, section, () => crypto.randomUUID())
+        ),
+
+      exportSection: (sectionId) => {
+        const section = config.sections.find((s) => s.id === sectionId);
+        if (!section) return;
+        downloadJson(
+          serializeSectionExport(section),
+          sectionExportFilename(section)
+        );
+      },
+
       replaceConfig: (next) => {
         applyWrite(() => next);
       },
 
-      exportConfig: () => {
-        const blob = new Blob([serializeExport(config)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = exportFilename();
-        document.body.append(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 0);
-      },
+      exportConfig: () =>
+        downloadJson(serializeExport(config), exportFilename()),
 
       reset: () => applyWrite(() => emptyConfig()),
 

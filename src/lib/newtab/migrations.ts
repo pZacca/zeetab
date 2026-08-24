@@ -21,7 +21,7 @@ function isShortcut(value: unknown): value is Shortcut {
   );
 }
 
-function isSection(value: unknown): value is Section {
+export function isSection(value: unknown): value is Section {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
