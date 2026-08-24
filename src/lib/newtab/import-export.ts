@@ -11,6 +11,10 @@ export type SectionImportResult =
   | { ok: true; section: Section }
   | { ok: false; reason: string };
 
+/** Name given to an imported Section whose own name was `null` (an exported
+ *  default Section) — the Config's single nameless Section stays at index 0. */
+export const IMPORTED_DEFAULT_SECTION_NAME = "Imported default";
+
 export function parseImport(raw: string): ImportResult {
   let parsed: unknown;
   try {
@@ -54,6 +58,17 @@ export function parseSectionImport(raw: string): SectionImportResult {
   }
 
   const envelope = parsed as Record<string, unknown>;
+  // A newer version is the most useful thing to report, whatever the shape.
+  if (
+    typeof envelope.version === "number" &&
+    envelope.version > CONFIG_VERSION
+  ) {
+    return {
+      ok: false,
+      reason: "section export version is newer than supported",
+    };
+  }
+
   if ("sections" in envelope) {
     return {
       ok: false,
@@ -63,16 +78,6 @@ export function parseSectionImport(raw: string): SectionImportResult {
 
   if (!("version" in envelope) || !("section" in envelope)) {
     return { ok: false, reason: "missing standalone section export envelope" };
-  }
-
-  if (
-    typeof envelope.version === "number" &&
-    envelope.version > CONFIG_VERSION
-  ) {
-    return {
-      ok: false,
-      reason: "section export version is newer than supported",
-    };
   }
 
   if (envelope.version !== CONFIG_VERSION) {
@@ -138,7 +143,7 @@ export function appendImportedSection(
 
   const imported: Section = {
     id: nextUniqueId(),
-    name: section.name === null ? "Imported default" : section.name,
+    name: section.name ?? IMPORTED_DEFAULT_SECTION_NAME,
     collapsed: section.collapsed,
     shortcuts: section.shortcuts.map((shortcut) => ({
       ...shortcut,

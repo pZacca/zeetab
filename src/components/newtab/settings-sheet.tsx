@@ -21,6 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, GripVertical, Trash2, X } from "lucide-react";
 import { useNewtab } from "./newtab-provider";
 import {
+  IMPORTED_DEFAULT_SECTION_NAME,
   parseImport,
   parseSectionImport,
 } from "@/lib/newtab/import-export";
@@ -322,6 +323,7 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
                   </DropdownMenu>
                   <button
                     type="button"
+                    aria-label="Import Section"
                     className={cliButtonNeutral}
                     onClick={() => sectionFileRef.current?.click()}
                   >
@@ -476,11 +478,11 @@ export function SettingsSheet({ open, onOpenChange }: Props) {
           <AlertDialogContent className="border-border/40 bg-secondary text-zinc-100 sm:max-w-sm">
             <AlertDialogHeader>
               <AlertDialogTitle className="font-ibm-plex-mono text-base text-zinc-100">
-                import “{pendingSectionImport?.name ?? "default"}”?
+                import “{pendingSectionImport?.name ?? IMPORTED_DEFAULT_SECTION_NAME}”?
               </AlertDialogTitle>
               <AlertDialogDescription className="text-xs text-zinc-500">
                 {pendingSectionImport
-                  ? `importing section “${pendingSectionImport.name ?? "default"}” with ${pendingSectionImport.shortcuts.length} shortcut${pendingSectionImport.shortcuts.length === 1 ? "" : "s"}. your current configuration remains unchanged; the imported section will be added after your existing sections.`
+                  ? `importing section “${pendingSectionImport.name ?? IMPORTED_DEFAULT_SECTION_NAME}” with ${pendingSectionImport.shortcuts.length} shortcut${pendingSectionImport.shortcuts.length === 1 ? "" : "s"}. your current configuration remains unchanged; the imported section will be added after your existing sections.`
                   : ""}
               </AlertDialogDescription>
             </AlertDialogHeader>

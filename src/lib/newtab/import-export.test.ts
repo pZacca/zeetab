@@ -139,6 +139,36 @@ describe("standalone Section import and export", () => {
       /malformed section/i,
     );
   });
+
+  it("rejects version mismatches and non-numeric versions", () => {
+    const section = sectionFixture();
+
+    const older = parseSectionImport(JSON.stringify({ version: 0, section }));
+    expect(older.ok).toBe(false);
+    expect(older.ok === false && older.reason).toMatch(/expected 1/);
+
+    const stringy = parseSectionImport(
+      JSON.stringify({ version: "1", section }),
+    );
+    expect(stringy.ok).toBe(false);
+    expect(stringy.ok === false && stringy.reason).toMatch(/expected 1/);
+  });
+
+  it("rejects envelopes without a section, arrays, and null", () => {
+    for (const raw of [JSON.stringify({ version: 1 }), "[]", "null"]) {
+      const result = parseSectionImport(raw);
+      expect(result.ok).toBe(false);
+      expect(result.ok === false && result.reason).toMatch(/envelope/i);
+    }
+  });
+
+  it("reports a newer version before complaining about a full Config export", () => {
+    const result = parseSectionImport(
+      JSON.stringify({ version: 2, sections: [] }),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.reason).toMatch(/newer/i);
+  });
 });
 
 describe("sectionExportFilename", () => {
@@ -157,6 +187,15 @@ describe("sectionExportFilename", () => {
 
     expect(sectionExportFilename(section, date)).toBe(
       "zacca-newtab-section-default-2026-04-24.json",
+    );
+  });
+
+  it("falls back to section when the name has no slug-safe characters", () => {
+    const section = sectionFixture();
+    section.name = "!!! ***";
+
+    expect(sectionExportFilename(section, date)).toBe(
+      "zacca-newtab-section-section-2026-04-24.json",
     );
   });
 });
